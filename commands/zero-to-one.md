@@ -17,6 +17,57 @@ Runs Workflow A from `/Users/christxu/.claude/plans/steady-sprouting-rabbit.md` 
 - Brain vault present at `~/Desktop/Brain` (for `/vault-session`)
 - Wispr Flow optional but recommended for long-form dictation during planning
 
+## Clarification Gates (MANDATORY)
+
+This command must not proceed past any gate with an assumption. When a decision is ambiguous, use `AskUserQuestion` with 2-4 labeled options. If the user is unresponsive, output `[BLOCKED: awaiting <decision>]` and stop. See global policy at `~/.claude/rules/common/clarification.md`.
+
+**Rule of thumb:** ask A-or-B, not "is this ok?". Ask at the start of a phase, not the end. Silent defaults are forbidden.
+
+### Phase 0 — Intake (before Phase 1 starts)
+
+Batch these into `AskUserQuestion` calls (up to 3 per call, grouped by topic). Every one of these is a gate — do not infer from `$2`:
+
+- **Target runtime** — Node / Python / Go / Rust / other
+- **Deployment target** — local / Docker / Vercel / Cloudflare / AWS / Railway / self-hosted
+- **Package manager** — npm / pnpm / yarn / bun (or pip / poetry / uv / cargo / go mod)
+- **Persistence layer** — none / SQLite / Postgres / Redis / file
+- **Auth model** — none / API key / OAuth / JWT / session / magic link
+- **Test framework** — ask when the chosen language has >1 idiomatic option (e.g. Python: pytest vs unittest; JS: vitest vs jest)
+- **License** — MIT / Apache-2.0 / GPL-3.0 / proprietary
+- **Repo visibility** — public / private
+- **Budget / timebox** — quick prototype (hours) / weekend spike / production-ready (days+)
+- **Skeleton selection** — when A7 surfaces 2+ forkable candidates, present the top 3 with trade-offs (stars, last commit, license, fit) and ask which to fork. Never pick silently.
+
+### Between-phase gates
+
+Stop and confirm at each of these transitions. Do not chain phases silently.
+
+- **Before Phase 2 (Plan & Design)** — confirm Phase 1 research findings and which skeleton (if any) was chosen. Show the user the shortlist before entering plan mode.
+- **Before Phase 3 (Scaffold)** — confirm the plan was approved. `ExitPlanMode` enforces this structurally, but also explicitly ask: "Approve as-is, or revise X/Y/Z?"
+- **Before Phase 4 (TDD)** — confirm the test framework (if not pinned in Phase 0) and the first vertical slice's test targets. Ask: "Which slice do we RED first — A, B, or C?"
+- **Before Phase 5 (Review)** — confirm what "done" looks like for this session. Ask: "Ship one slice and stop, or keep looping until the Phase 2 milestone is complete?"
+- **Before Phase 6 (Ship)** — confirm commit authorship attribution, PR target branch (`main` / `master` / other), and whether to `git push` immediately or stage locally.
+- **Before `mem_save` / `/vault-session`** — confirm what's worth saving to long-term memory. Ask: "Save full ADR, save learnings only, or skip memory write?"
+
+### Hard stops (never proceed past without an explicit answer)
+
+- **Any destructive git op** — `reset --hard`, `push --force`, `branch -D`, `clean -f`, `checkout .`
+- **`gh repo create`** — confirm name, visibility, and org/owner before creating. One-way door.
+- **Installing dependencies** — confirm each new dep before `npm install` / `pip install` / `cargo add`. No silent adds.
+- **Touching files outside `$1` project directory** — ask before writing anywhere that is not the new repo root.
+- **Any choice between two non-equivalent architectural approaches** — monolith vs services, sync vs queue, SQL vs document, server-rendered vs SPA, etc.
+
+### How to ask
+
+Use `AskUserQuestion` with labeled options. Batch up to 3 related questions per call. Never ask "is this ok?" — ask "A or B?".
+
+### Anti-patterns (do NOT do these)
+
+- **Silent defaults** — picking Node + npm + Vercel because "it's common". Ask.
+- **Prose questions without tool calls** — writing "I'll assume X, let me know if not" and continuing. Stop and fire `AskUserQuestion`.
+- **Approval at the end instead of the start** — asking "ok to commit?" after scaffolding 20 files. Ask before the files exist.
+- **Multiple variations of the same question** — re-asking runtime after it was answered in Phase 0. Persist answers across the run.
+
 ## Arguments
 - `$1` — project name (required). Used for session slug, repo name, vault note.
 - `$2` — one-line description (optional). Used as the domain seed for A4–A7 searches.

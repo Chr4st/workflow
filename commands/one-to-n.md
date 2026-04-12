@@ -24,6 +24,60 @@ If you are not sure which workflow applies, default to this one; the mapping pha
 - You are in a real git repo with a working tree clean enough to branch from.
 - `MAX_THINKING_TOKENS` set if you want deeper planning on B14–B17.
 
+## Clarification Gates (MANDATORY)
+
+This command must not proceed past any gate with an assumption. When a decision is ambiguous, use `AskUserQuestion` with 2-4 labeled options. If the user is unresponsive, output `[BLOCKED: awaiting <decision>]` and stop — do not default, do not guess, do not proceed. See the global policy at `~/.claude/rules/common/clarification.md` for the full rule set; this section is the 1→n-specific instantiation.
+
+### Phase 0 — Intake (before Phase 1 mapping starts)
+
+Before you run `/caveman full` at B1, resolve every question below via `AskUserQuestion`. Do not begin mapping until each has an answer on the record.
+
+- **Scope boundary** — this file / this module / this feature / this end-to-end flow. Every later phase uses this as the fence.
+- **Backwards compatibility required** — yes / no. Critical for public APIs and DB schemas; determines whether Phase 2's `api_impact` and `shape_check` results are blocking.
+- **Migration strategy** — online zero-downtime / offline maintenance window / N/A. Drives Phase 4 test design and Phase 8 rollout.
+- **Feature flag needed** — yes / no. Affects rollout path and revert plan.
+- **Deprecation window for removed code** — none / 1 release / 2 releases / longer. Gates any symbol removal in Phase 5.
+- **Tests allowed to change** — none / only new / existing can be modified / full refactor permitted. Sets the Phase 4 TDD envelope.
+- **PR split strategy** — single PR / stacked PRs / branch series. Decided up front, not at Phase 8.
+- **Merge target branch** — main / release / feature branch. Required for Phase 8 `gh pr create`.
+- **Blast radius threshold** — default: if `mcp__gitnexus__impact` reveals more than 10 call sites, stop and confirm before proceeding to Phase 3.
+- **Rollback plan** — revert PR / feature flag off / full rollback. Required before any edit lands in Phase 5.
+
+### Between-phase gates
+
+These are the specific transitions where the pipeline must stop and confirm via `AskUserQuestion`. Do not cross them silently.
+
+- **After Phase 2 (Impact Analysis)** — if `mcp__gitnexus__impact` reveals more call sites than the Phase 0 threshold or than the user expected, STOP. Show the user the full list and ask: proceed as-is / narrow scope / re-plan.
+- **Before Phase 3 (Plan)** — confirm the exact list of files that will be edited. Get explicit approval on the file set before entering plan mode.
+- **Before Phase 4 (TDD)** — confirm the integration seams where tests will be written, and confirm which existing tests must still pass unchanged.
+- **Before Phase 5 (Parallel Execution)** — confirm worker routing: backend / frontend / both. Confirm which agents are allowed to write and which files each worker owns.
+- **Before Phase 6 (Verification)** — confirm verification scope: full stack verify / subset. If subset, confirm which steps are skipped and why.
+- **Before Phase 7 (Review)** — confirm the reviewer agent set: all (code-reviewer + language-specific + database + security + adversarial) / subset. If subset, confirm which reviewers are skipped.
+- **Before Phase 8 (Ship)** — confirm PR target branch, merge strategy, whether to push immediately or hold, and commit message style (caveman terse / full conventional).
+
+### Hard stops (never proceed past without explicit answer)
+
+These require a direct user response. No defaults, no "I'll assume", no silent continuation.
+
+- Any destructive git op — `git reset --hard`, `git push --force`, branch delete.
+- Schema or migration changes — always confirm before running, even in a dev branch.
+- Touching any file outside the Phase 0 declared scope boundary.
+- Any choice between two non-equivalent architectural approaches (e.g. sync vs async, SQL vs NoSQL, monolith vs service split).
+- API contract changes — confirm breaking vs non-breaking classification with the user before editing.
+- Removing or renaming any public symbol — confirm the deprecation plan first against the Phase 0 window.
+- Any edit that would invalidate the gitnexus index without a `/update-codemaps` follow-up in Phase 8.
+
+### How to ask
+
+Use `AskUserQuestion` with labeled options. Batch up to 3 related questions per call. Never ask "is this ok?" — ask "A or B?".
+
+### Anti-patterns
+
+- Silent defaults — "I'll use Postgres unless you object" is forbidden. Ask first.
+- Proceeding past a surprising impact analysis without user input — if the number shocks you, it will shock them more; stop.
+- Asking for approval at the end instead of the start — batch the decisions at Phase 0, not at Phase 8 when the work is already done.
+- Widening scope without confirmation — if a file outside the declared boundary needs to change, stop and re-open the Phase 0 scope question.
+
 ## Arguments
 - `$1` — feature description (required). One or two sentences; this becomes the query string for every mapping tool below.
 - `$2` — target area/module (optional). A directory, package, service name, or route prefix. Sharpens the focus of `mcp__gitnexus__context`, `route_map`, and the Explore agents; also narrows `/vault-find` and `mem_search`.

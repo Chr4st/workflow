@@ -17,6 +17,60 @@ Run this for real bugs, failing tests, and production incidents where the root c
 - Engram MCP reachable (`mem_search` works) — required for Phase 7.
 - Caveman full is already active via SessionStart; confirm with the statusline badge.
 
+## Clarification Gates (MANDATORY)
+
+This command must not proceed past any gate with an assumption. When a decision is ambiguous, use `AskUserQuestion` with 2-4 labeled options. If the user is unresponsive, output `[BLOCKED: awaiting <decision>]` and stop — do not guess, do not pick a default, do not "try the safe one first". See the global policy at `~/.claude/rules/common/clarification.md`.
+
+### Phase 0 — Intake (before Phase 1 starts)
+
+Ask these before a single file is read. Batch related questions in one `AskUserQuestion` call.
+
+- **Reproduction confirmed** (yes / no) — **HARD BLOCK until yes.** Never debug a bug the user has not reproduced in their own environment. If the user cannot produce exact reproduction steps, stop and ask for them verbatim. A fix for an unreproduced bug is a guess, and this pipeline does not ship guesses.
+- **Fix scope** (fix this specific bug only / fix + prevent class of bug / fix + refactor surrounding area) — determines whether Phase 4 stays minimal or expands. Default assumption is "specific bug only."
+- **Prod incident status** (yes / no) — changes urgency, blast radius tolerance, and rollback posture. A prod incident collapses Phase 6 reviewer parallelism into whatever the user can afford.
+- **Rollback acceptable** (yes / no) — sometimes the right answer is revert-and-investigate, not forward-fix. Ask before burning an hour on a patch.
+- **Tests allowed to change** (none / only the broken test / new tests added / refactor existing) — governs Phase 3 and Phase 6. Never weaken an existing test without explicit permission.
+- **Root cause ownership** (our code / upstream dependency / framework / infra) — affects whether the fix lives in this repo at all. If the bug is upstream, Phase 4 becomes "file an issue + add a local workaround," not "patch our code."
+- **Post-mortem required** (yes / no) — some bugs need a write-up in Phase 7, not just a `mem_save`.
+- **Urgency timeline** (minutes / hours / days) — affects whether to take the Codex rescue path (Phase 5) sooner instead of grinding Sonnet iterations.
+
+### Between-phase gates
+
+Stop at each transition and confirm. Do not flow through phase boundaries silently.
+
+- **Before Phase 2 (Investigate)** — Confirm the scope of investigation. Ask the user which suspected files, symbols, or subsystems to focus on (if any). If the user has a hunch, honor it in explorer prompts.
+- **Before Phase 3 (Lock with failing test)** — Confirm where the test should live (which file, which directory) and which framework (unit / integration / contract / e2e). Do not invent a test location.
+- **Before Phase 4 (Fix minimally)** — Confirm the minimal diff plan in plain English before editing any file. No surrounding refactors, no "while I'm in here" cleanups, no formatting changes without explicit approval.
+- **Before Phase 5 (Codex rescue) — HIGHEST SCRUTINY GATE.** `/codex:rescue` is a heavyweight escape hatch that spends real tokens and wall time. STOP and confirm the user actually wants the Codex second opinion versus trying a different approach in this conversation. Ask verbatim: "Stuck after N iterations — A: invoke `/codex:rescue`, B: try a different approach here, C: escalate to human." Never invoke rescue silently. Never invoke rescue on the first hiccup. Never invoke rescue without showing the user what you already tried.
+- **Reviewing Codex output** — After `/codex:result` returns, NEVER auto-apply anything. Show the user each proposed change and ask which to apply. Use `AskUserQuestion` with one option per proposed hunk plus a "none of these" option. Re-run the locked test between applied hunks.
+- **Before Phase 6 (Regression harden)** — Confirm which reviewer agents to run. code-reviewer is always on; language-specific and security-reviewer are conditional and must be confirmed.
+- **Before Phase 7 (Persist knowledge)** — Confirm the `mem_save` content (What/Why/Where/Learned) and the Brain session note frontmatter before writing. Memory is append-only — a wrong save is hard to undo.
+
+### Hard stops (never proceed past without explicit answer)
+
+These are non-negotiable. No default answer. No "I'll just do the safe thing." Ask.
+
+- **Applying a Codex-proposed fix** — always review first, always ask which hunks to apply, never batch-apply.
+- **Changing existing tests in a way that weakens guarantees** — removing assertions, loosening matchers, deleting test cases, or skipping tests all require explicit approval.
+- **Any git op that could lose work** — `git reset --hard`, `git stash drop`, `git push --force`, branch deletion, `git clean -fd`. Confirm every time, even if the user previously approved a similar op.
+- **Editing files outside the bug's scope** — if the diff wants to touch a file that is not on the blast-radius path from Phase 2, stop and ask.
+- **Rollback operations** — revert commits, feature flag changes, environment variable changes, config rollbacks. All require confirmation even under prod incident pressure.
+- **Touching auth, crypto, or payment code** — never edit these without running `Agent(security-reviewer)` first and confirming scope with the user. This applies even for a "one-line fix."
+- **Any "quick fix" that bypasses the failing-test requirement** — if you are tempted to skip Phase 3 because "the fix is obvious," stop. Ask the user to explicitly waive the RED test requirement in writing. Do not assume.
+
+### How to ask
+
+Use `AskUserQuestion` with labeled options. Batch up to 3 related questions per call. Never ask "is this ok?" — ask "A or B?"
+
+### Anti-patterns
+
+- **Fixing before reproducing.** "I think I see the bug in line 42..." → reproduce first. No exceptions. Phase 0 gate exists for this.
+- **Auto-applying Codex fixes without user review.** The codex plugin policy forbids it; this clarification gate enforces it.
+- **Weakening tests to make them pass.** If a test goes red after the fix, the fix is wrong, not the test. Ask before touching the test.
+- **Refactoring while fixing.** Blurs the diff, hides the fix, makes the PR un-bisectable. Defer refactors to a follow-up.
+- **Silent fallback to a "workaround" without confirming.** If the root-cause fix is hard, ask the user whether they want a workaround or a root-cause fix. Do not pick for them.
+- **Saying "the fix is in" before `/verify` passes.** Green locked test is necessary but not sufficient. Phase 6 must complete cleanly before declaring done.
+
 ## Arguments
 - `$1` — bug description or exact error message (required). Quote verbatim, including stack frames.
 - `$2` — suspect file path or symbol name (optional). Speeds up Phase 2 impact analysis by giving gitnexus a starting node.
