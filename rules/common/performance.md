@@ -131,6 +131,34 @@ Each sub-spec runs as its own Agent, with only the KEEP outputs from prior sub-s
 
 When a workflow step says "run /orchestrate" or "run /multi-plan", treat these as sub-spec boundaries. The orchestrator's output is a compressed summary, not the raw agent outputs.
 
+## Structured Handoff
+
+At every sub-spec boundary (agent completion, phase transition, reviewer handoff), pass a JSON brief instead of raw conversation:
+
+```json
+{
+  "step": "A25",
+  "phase": "review",
+  "decisions": ["FastAPI chosen over Express", "Postgres over SQLite"],
+  "files_modified": ["src/api.py", "src/models.py"],
+  "test_status": {"pass": 12, "fail": 0, "coverage": "84%"},
+  "open_findings": [{"severity": "HIGH", "rule": "no-rate-limit", "file": "src/api.py:45"}],
+  "remaining_work": ["A26 security review", "A27 language review"],
+  "context_tokens_used": 45000
+}
+```
+
+Target: 200-500 tokens per handoff. The receiving agent reconstructs context from this brief + reading the actual files, not from conversation history.
+
+## Plan Caching
+
+After completing a workflow, cache the plan skeleton via Engram:
+- `mem_save` with topic key `workflow/plan-template/<task-type>` (e.g., `rest-endpoint`, `auth-module`, `bug-fix-race-condition`)
+- Content: the approved plan structure (phases, step count, key decisions, tools used)
+- On similar future tasks, `mem_search` for matching templates and provide as few-shot context to the planner
+
+This yields ~50% planning cost reduction for repetitive task types (arXiv:2506.14852).
+
 ## Telemetry
 
 Install `claude-hud` (jarrodwatts/claude-hud) for real-time visibility into context window fill, tokens consumed per turn, and active agent count. Run `claude plugin install claude-hud@claude-hud` once. No config needed — it reads Claude Code runtime state directly. Use the overlay to detect runaway context consumption before hitting compaction.

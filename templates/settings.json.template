@@ -154,6 +154,12 @@
             "command": "node ~/.claude/scripts/hooks/semgrep-posttool.js",
             "timeout": 15,
             "statusMessage": "Running semgrep SAST scan..."
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/workflow-verifier.js",
+            "timeout": 10,
+            "statusMessage": "Checking workflow progress..."
           }
         ]
       }

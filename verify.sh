@@ -101,7 +101,7 @@ fi
 
 # 7c) hooks registered in settings.json
 hooks_ok=true
-for hook_cmd in "session-start.js" "post-tool-learning.js" "semgrep-posttool.js" "session-end.js" "mentor-stop.js"; do
+for hook_cmd in "session-start.js" "post-tool-learning.js" "semgrep-posttool.js" "session-end.js" "mentor-stop.js" "workflow-verifier.js"; do
   if [ -f "$SETTINGS" ] && grep -q "$hook_cmd" "$SETTINGS" 2>/dev/null; then
     :
   else
@@ -110,7 +110,7 @@ for hook_cmd in "session-start.js" "post-tool-learning.js" "semgrep-posttool.js"
   fi
 done
 if [ "$hooks_ok" = true ]; then
-  pass_line "all 5 hook scripts registered in settings.json"
+  pass_line "all 6 hook scripts registered in settings.json"
 fi
 
 # 8) semgrep-posttool.js exists and parses

@@ -681,6 +681,15 @@ Chris's `settings.json` also enables `ck@cavekit-local` and `bp@cavekit-local` f
 
 ---
 
+## Optional Environment Variables
+
+- `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=60` — Trigger context compaction at 60% fill instead of the default 95%. Produces smaller, higher-quality summaries. Add to your shell profile (`~/.zshrc` or `~/.bashrc`):
+  ```bash
+  export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=60
+  ```
+
+---
+
 ## Troubleshooting
 
 | Symptom | Fix |

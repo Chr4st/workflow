@@ -6,6 +6,19 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, Skill, WebFetch, Task
 
 # /one-to-n — Feature Pipeline for Large Codebases
 
+## Workflow Initialization
+
+Before starting Phase 1:
+1. Read `workflow/state-machines/one-to-n.json` to load the state machine
+2. Create a Task for each state via TaskCreate (subject: step ID + name)
+3. Write initial state to `~/.claude/sessions/workflow-state.json` via workflow-runner
+4. Update Task B1 to `in_progress`
+
+After completing each step:
+- Update the Task to `completed`
+- Update `workflow-state.json` with the new current state
+- Update the next Task to `in_progress`
+
 ## Purpose
 Use this pipeline when adding a feature to an existing, non-trivial codebase where you cannot hold the whole tree in your head. It front-loads mapping and blast-radius analysis via the `gitnexus` MCP, parallelizes execution with `/multi-execute` worker agents, and stages verification from cheap to expensive. Expected outcome: a PR whose reviewer can trust that every call site of every touched symbol was considered.
 

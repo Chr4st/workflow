@@ -24,6 +24,14 @@ Use the `AskUserQuestion` tool with **2–4 labeled options** per question. **No
 
 **Exception**: reversible, local, read-only actions (reading files, listing directories, grep, running tests that don't mutate state) never require clarification. The gate applies to writes, edits, installs, deletes, network calls, and shared-state mutations.
 
+## Default Ask
+
+When no constraint exists for a decision and none is inferable from the repo, ask:
+"Do you want to set a constraint here, or should I research the best option and recommend one?"
+Options: A) I'll give you a constraint, B) Research and recommend, C) Use the simplest default.
+
+This applies to: architecture choices, naming conventions, file organization, dependency selection, error handling strategy, and any design decision with >1 reasonable approach.
+
 ## Universal Triggers (any workflow)
 
 ### Hard Gates (never skip, never assume)

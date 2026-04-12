@@ -6,6 +6,19 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, Skill, WebFetch, WebS
 
 # /zero-to-one — New Project Pipeline
 
+## Workflow Initialization
+
+Before starting Phase 1:
+1. Read `workflow/state-machines/zero-to-one.json` to load the state machine
+2. Create a Task for each state via TaskCreate (subject: step ID + name)
+3. Write initial state to `~/.claude/sessions/workflow-state.json` via workflow-runner
+4. Update Task A1 to `in_progress`
+
+After completing each step:
+- Update the Task to `completed`
+- Update `workflow-state.json` with the new current state
+- Update the next Task to `in_progress`
+
 ## Purpose
 Runs Workflow A from `/Users/christxu/.claude/plans/steady-sprouting-rabbit.md` end-to-end: a 38-step pipeline for greenfield projects that spends tokens on research and planning up front, forks battle-tested skeletons over writing new code, and locks in TDD + memory from day one. Use this when you are starting a brand-new project from scratch. The expected outcome is a scaffolded repo with tests, a reviewed first commit, a PR, a vault session note, and episodic memory saved for later 1→n work.
 

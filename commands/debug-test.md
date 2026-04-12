@@ -6,6 +6,19 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, Skill, WebFetch, Task
 
 # /debug-test — Debug and Harden Pipeline
 
+## Workflow Initialization
+
+Before starting Phase 1:
+1. Read `workflow/state-machines/debug-test.json` to load the state machine
+2. Create a Task for each state via TaskCreate (subject: step ID + name)
+3. Write initial state to `~/.claude/sessions/workflow-state.json` via workflow-runner
+4. Update Task C1 to `in_progress`
+
+After completing each step:
+- Update the Task to `completed`
+- Update `workflow-state.json` with the new current state
+- Update the next Task to `in_progress`
+
 ## Purpose
 Run this for real bugs, failing tests, and production incidents where the root cause is unknown. The pipeline forces you to reproduce the bug before touching code, lock it with a failing test, apply the smallest possible fix, and persist the learning so the same class of defect never costs you twice. Do NOT use this for feature work (use `/zero-to-one` or `/one-to-n`) — feature scaffolding will pollute your fix diff.
 
