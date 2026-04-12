@@ -11,7 +11,7 @@ This document describes exactly what lands on your machine after install, what w
 | `commands/*.md` | 3 workflow slash commands (`/zero-to-one`, `/one-to-n`, `/debug-test`) | Symlinked to `~/.claude/commands/` so `git pull` in this repo updates the live commands instantly. |
 | `rules/common/*.md` | 11 global rule files (clarification, testing, security, coding-style, git-workflow, performance, patterns, mentor, hooks, development-workflow, agents) | Copied to `~/.claude/rules/common/`. These are referenced by every workflow phase and by the global `CLAUDE.md`. |
 | `agents/*.md` | 14 agent definitions (planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, e2e-runner, refactor-cleaner, doc-updater, and 5 more) | Copied to `~/.claude/agents/`. Each agent is a single markdown file with its own frontmatter and role prompt. |
-| `scripts/hooks/*.js` | 4 SessionStart / PostToolUse / Stop hooks | Copied to `~/.claude/scripts/hooks/`. Wired into `settings.json` via the hook registration block. |
+| `scripts/hooks/*.js` | 5 SessionStart / PostToolUse / Stop hooks (including semgrep SAST scanner) | Copied to `~/.claude/scripts/hooks/`. Wired into `settings.json` via the hook registration block. |
 | `scripts/lib/*.js` | 6 shared lib files (utils, project-detect, session-manager, mentor-detect, pattern-extract, formatter) | Copied to `~/.claude/scripts/lib/`. Imported by the hook scripts; not invoked directly. |
 | `templates/CLAUDE.md.template` | Stub global instructions file | Merged into `~/.claude/CLAUDE.md`. If a `CLAUDE.md` already exists, install.sh backs it up before merging so existing content is preserved. |
 | `templates/settings.json.template` | Baseline settings (plugins, hooks, statusLine) | jq-merged into `~/.claude/settings.json`. Never overwrites — existing keys win over template keys during the merge so your personal tweaks survive a re-run. |
@@ -67,6 +67,14 @@ The bundle depends on three third-party plugins, each pinned to a specific versi
 | `codex` | `1.0.2` | `openai/codex-plugin-cc` |
 | `caveman` | `600e8efcd6ac` | `JuliusBrussee/caveman` |
 | `claude-hud` | latest | `jarrodwatts/claude-hud` |
+
+### CLI Tools
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| `@anthropic-ai/rtk` | Compress Bash output before it enters context (PreToolUse hook). 60-90% token savings. | `npm install -g @anthropic-ai/rtk && rtk init` |
+| `semgrep` | Deterministic SAST on every Write/Edit (PostToolUse hook). 2,000+ rules. | `pip3 install semgrep` |
+| Stryker / mutmut | Mutation testing — measures test strength beyond coverage. Per-project. | `npx stryker run` (JS/TS) / `mutmut run` (Python) |
 
 The `caveman` pin is a git SHA rather than a semver tag because the caveman marketplace does not publish semver releases. `install.sh` passes the SHA to `claude plugin install` which resolves it against the marketplace's git history. If the SHA ever gets garbage collected upstream, pin-bumping is a one-line change in `install.sh`.
 

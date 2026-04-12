@@ -20,6 +20,18 @@ MANDATORY workflow:
 5. Refactor (IMPROVE)
 6. Verify coverage (80%+)
 
+## Mutation Testing
+
+After coverage clears 80%, run mutation testing to verify test STRENGTH:
+- **JS/TS**: `npx stryker run` (Stryker)
+- **Python**: `mutmut run` (mutmut)
+- **Go**: `go-mutesting` or `gremlins`
+- **Rust**: `cargo-mutants`
+
+Mutation score target: 60%+ on changed files. A high-coverage test suite with low mutation score means tests exercise code paths without asserting meaningful behavior.
+
+Run on CHANGED FILES ONLY (not the full suite) to keep runtime under 5 minutes. Full-suite mutation testing is a CI concern, not a pre-commit concern. If mutation score is below 60%, strengthen tests at the weakest seams before proceeding.
+
 ## Troubleshooting Test Failures
 
 1. Use **tdd-guide** agent

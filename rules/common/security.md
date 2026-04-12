@@ -1,5 +1,7 @@
 # Security Guidelines
 
+NOTE: Mechanical SAST checks (hardcoded secrets, injection patterns, XSS, unsafe deserialization) are handled by the semgrep PostToolUse hook at write time. The checklist below should still be verified, but semgrep catches most of these automatically. The security-reviewer agent focuses on architectural security that semgrep cannot detect.
+
 ## Mandatory Security Checks
 
 Before ANY commit:

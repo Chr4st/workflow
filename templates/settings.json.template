@@ -148,6 +148,12 @@
             "command": "node ~/.claude/scripts/hooks/post-tool-learning.js",
             "timeout": 10,
             "statusMessage": "Capturing learning..."
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/semgrep-posttool.js",
+            "timeout": 15,
+            "statusMessage": "Running semgrep SAST scan..."
           }
         ]
       }

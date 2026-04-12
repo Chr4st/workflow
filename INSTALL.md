@@ -197,6 +197,11 @@ Claude Code loads MCP servers from `~/.claude/mcp.json` (or from the `mcpServers
       "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
       "env": {}
     },
+    "ast-grep": {
+      "command": "npx",
+      "args": ["-y", "ast-grep-mcp"],
+      "env": {}
+    },
     "filesystem": {
       "command": "npx",
       "args": [
@@ -224,6 +229,7 @@ Claude Code loads MCP servers from `~/.claude/mcp.json` (or from the `mcpServers
 | `supabase` | Project DB + auth ops (optional) | `SUPABASE_PROJECT_REF` + `SUPABASE_ACCESS_TOKEN` | Project info call returns schema |
 | `context7` | Live docs lookup for stacks | None | Any library docs query returns versioned docs |
 | `sequential-thinking` | Chain-of-thought reasoning scaffold | None | Tool list shows `sequentialthinking` |
+| `ast-grep` | AST-based structural code search — finds patterns by syntax tree, catches hallucinated API calls, wrong method signatures | None | `ast-grep` tool list loads; structural query returns results |
 | `filesystem` | Scoped file access outside cwd | Allowed paths in args | File read inside an allowed path works |
 
 ### 3c. Export credentials
@@ -612,7 +618,28 @@ Per `performance.md`, the workflow commands route work to three different models
 
 The default model in `~/.claude/settings.json` should be `claude-opus-4-6` for planning-heavy work, `claude-sonnet-4-6` for implementation-heavy work. Swap via `/model <name>` at any time.
 
-### 9e. Telemetry with claude-hud (optional)
+### 9e. RTK — Response Token Kit (recommended)
+
+RTK compresses Bash command output before it enters Claude's context window. Caveman compresses Claude's *output*; RTK compresses *input* from shell commands. Together they save 60-90% on command output tokens.
+
+```bash
+npm install -g @anthropic-ai/rtk
+rtk init
+```
+
+`rtk init` registers itself as a PreToolUse hook in `~/.claude/settings.json`. No further configuration needed. Verify by running any Bash command in Claude Code — output should be compressed.
+
+### 9f. Semgrep SAST hook (recommended)
+
+Semgrep runs deterministic SAST (2,000+ rules) on every file write/edit via a PostToolUse hook. It catches injection, XSS, hardcoded secrets, and unsafe deserialization at write time — no tokens spent on an agent.
+
+```bash
+pip3 install semgrep    # or: brew install semgrep
+```
+
+The hook script (`semgrep-posttool.js`) is installed automatically by `install.sh`. If semgrep is not on `$PATH`, the hook degrades gracefully (one-time warning, then silent).
+
+### 9g. Telemetry with claude-hud (optional)
 
 For real-time visibility into context usage, active tools, and agent tracking, install the `claude-hud` plugin:
 
@@ -637,7 +664,18 @@ Then add the marketplace and enable in `~/.claude/settings.json`:
 
 This gives you a statusline overlay showing tokens consumed per turn, context window fill %, and active agent count. No configuration beyond install — it reads Claude Code's runtime state directly.
 
-### 9f. ck / bp plugins (Chris's local plugins)
+### 9h. Mutation testing (per-project)
+
+Mutation testing verifies test STRENGTH, not just coverage. The workflows invoke it after the coverage check passes. Tools are installed per-project, not globally:
+
+- **JS/TS**: `npx stryker run` (zero-config for most setups; run `npx stryker init` once per project)
+- **Python**: `pip install mutmut && mutmut run`
+- **Go**: `go install github.com/zimmski/go-mutesting/...@latest`
+- **Rust**: `cargo install cargo-mutants`
+
+Target: 60%+ mutation score on changed files. Runtime cap: 5 minutes. On timeout, skip and note in PR body.
+
+### 9i. ck / bp plugins (Chris's local plugins)
 
 Chris's `settings.json` also enables `ck@cavekit-local` and `bp@cavekit-local` from a local marketplace at `~/.claude/plugins/local/cavekit-marketplace`. These are personal and not required for the playbook — skip unless you have the source.
 

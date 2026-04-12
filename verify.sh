@@ -9,7 +9,7 @@ NC=$'\033[0m'
 
 pass=0
 fail=0
-total=8
+total=9
 
 pass_line() { printf "%s✓%s %s\n" "$GREEN" "$NC" "$*"; pass=$((pass+1)); }
 fail_line() { printf "%s✗%s %s\n" "$RED"   "$NC" "$*"; fail=$((fail+1)); }
@@ -80,7 +80,15 @@ else
   pass_line "codex check skipped (opt-out)"
 fi
 
-# 8) claude --help works
+# 8) semgrep-posttool.js exists and parses
+SP="$HOME/.claude/scripts/hooks/semgrep-posttool.js"
+if [ -f "$SP" ] && node --check "$SP" >/dev/null 2>&1; then
+  pass_line "scripts/hooks/semgrep-posttool.js is valid node syntax"
+else
+  fail_line "scripts/hooks/semgrep-posttool.js missing or invalid"
+fi
+
+# 9) claude --help works
 if claude --help >/dev/null 2>&1; then
   pass_line "claude --help works"
 else

@@ -2,8 +2,8 @@
 
 ## Hook Types
 
-- **PreToolUse**: Before tool execution (validation, parameter modification)
-- **PostToolUse**: After tool execution (auto-format, checks)
+- **PreToolUse**: Before tool execution (validation, parameter modification). RTK registers here to compress Bash output (60-90% token savings on command results).
+- **PostToolUse**: After tool execution (auto-format, checks). Semgrep SAST hook runs here on every Write/Edit (2,000+ rules, deterministic).
 - **Stop**: When session ends (final verification)
 
 ## Auto-Accept Permissions

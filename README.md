@@ -12,7 +12,7 @@ cd workflow
 
 Idempotent, with automatic backups. See `docs/BUNDLE.md` for what gets installed and `docs/TROUBLESHOOTING.md` if something breaks.
 
-For real-time telemetry (context usage, tokens, active agents), also run: `claude plugin install claude-hud@claude-hud`. See `INSTALL.md` § 9e.
+For real-time telemetry (context usage, tokens, active agents), also run: `claude plugin install claude-hud@claude-hud`. See `INSTALL.md` § 9g. For token savings on command output: `npm install -g @anthropic-ai/rtk && rtk init` (60-90% savings, complements caveman). For deterministic SAST: `pip3 install semgrep` (hooks into every file write).
 
 ## Quickstart
 

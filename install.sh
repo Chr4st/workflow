@@ -162,6 +162,45 @@ else
 fi
 
 # ============================================================
+# Step 4.5: RTK (Response Token Kit)
+# ============================================================
+step "4.5" "RTK (Response Token Kit)"
+
+if command -v rtk >/dev/null 2>&1; then
+  ok "rtk already installed"
+else
+  info "Installing RTK (compresses Bash output, 60-90% token savings)..."
+  if npm install -g @anthropic-ai/rtk >/dev/null 2>&1; then
+    ok "rtk installed"
+  else
+    warn "rtk install failed (non-fatal — install manually: npm install -g @anthropic-ai/rtk)"
+  fi
+fi
+
+# ============================================================
+# Step 4.6: Semgrep (SAST scanning hook)
+# ============================================================
+step "4.6" "Semgrep (SAST scanning)"
+
+if command -v semgrep >/dev/null 2>&1; then
+  ok "semgrep already installed"
+else
+  info "Installing semgrep (deterministic SAST on every file write)..."
+  if pip3 install semgrep >/dev/null 2>&1; then
+    ok "semgrep installed"
+  elif brew install semgrep >/dev/null 2>&1; then
+    ok "semgrep installed (via brew)"
+  else
+    warn "semgrep install failed (non-fatal — SAST hook will degrade gracefully)"
+  fi
+fi
+if command -v semgrep >/dev/null 2>&1; then
+  info "Pre-downloading semgrep rules..."
+  semgrep --config auto --version >/dev/null 2>&1 || true
+  ok "semgrep rules cached"
+fi
+
+# ============================================================
 # Step 5: backup
 # ============================================================
 CURRENT_STEP=5
@@ -363,6 +402,18 @@ if [ -f "$ENV_TEMPLATE" ]; then
   printf "%s  Fill in real values in .env (never commit).%s\n" "$YELLOW" "$NC"
 else
   warn "templates/env.template missing — skipping"
+fi
+
+# ============================================================
+# Step 10.5: RTK init (after settings.json merge to avoid overwrite)
+# ============================================================
+step "10.5" "RTK init"
+
+if command -v rtk >/dev/null 2>&1; then
+  rtk init 2>/dev/null || warn "rtk init failed (non-fatal — run manually: rtk init)"
+  ok "rtk PreToolUse hook registered"
+else
+  info "rtk not installed — skipping hook registration"
 fi
 
 # ============================================================
