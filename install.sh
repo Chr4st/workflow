@@ -82,6 +82,10 @@ require_cmd jq      ""       "jq --version"               "https://jqlang.github
 CURRENT_STEP=2
 step 2 "Configuration prompts"
 
+if [ ! -t 0 ]; then
+  warn "stdin is not a terminal — prompts will use defaults (codex=n, statusline=y, vault=none)"
+fi
+
 INSTALL_CODEX="n"
 read -r -p "Install Codex CLI globally via npm? (y/N) " _ans || true
 case "${_ans:-}" in y|Y|yes|YES) INSTALL_CODEX="y" ;; esac
@@ -206,7 +210,7 @@ fi
 CURRENT_STEP=5
 step 5 "Backup existing ~/.claude files"
 
-BACKUP_STAMP="${BACKUP_SUFFIX_OVERRIDE:-$(date +%s)}"
+BACKUP_STAMP="${BACKUP_SUFFIX_OVERRIDE:-$(date +%s).$$}"
 BACKUP_DIR="$HOME/.claude/.backup.${BACKUP_STAMP}"
 mkdir -p "$BACKUP_DIR"
 
@@ -338,9 +342,18 @@ if [ ! -f "$TEMPLATE_JSON" ]; then
   exit 1
 fi
 
+CAVEMAN_SL_PATH=""
+if [ -d "$HOME/.claude/plugins/cache/caveman" ]; then
+  CAVEMAN_SL_PATH=$(find "$HOME/.claude/plugins/cache/caveman" -name "caveman-statusline.sh" -type f 2>/dev/null | head -1)
+fi
+if [ -z "$CAVEMAN_SL_PATH" ]; then
+  CAVEMAN_SL_PATH="$HOME/.claude/plugins/cache/caveman/caveman/latest/hooks/caveman-statusline.sh"
+  warn "caveman statusline not found — using fallback path"
+fi
+
 TMP_DIR=$(mktemp -d)
 SANITIZED="$TMP_DIR/template.sanitized.json"
-sed "s|HOME_PATH|${HOME}|g" "$TEMPLATE_JSON" > "$SANITIZED"
+sed -e "s|HOME_PATH|${HOME}|g" -e "s|CAVEMAN_STATUSLINE_PATH|${CAVEMAN_SL_PATH}|g" "$TEMPLATE_JSON" > "$SANITIZED"
 
 # validate template
 jq . "$SANITIZED" >/dev/null || { err "sanitized template is not valid JSON"; exit 1; }
@@ -366,7 +379,15 @@ else
         ($user.permissions // {}) as $up
         | $up + { allow: (((($up.allow // []) + ($tpl.permissions.allow // []))) | unique) }
       )
-    | .hooks = (($tpl.hooks // {}) * ($user.hooks // {}))
+    | .hooks = (
+        ($user.hooks // {}) as $uh | ($tpl.hooks // {}) as $th |
+        (($uh | keys) + ($th | keys) | unique) | reduce .[] as $k ({};
+          .[$k] = (
+            (($uh[$k] // []) + ($th[$k] // []))
+            | unique_by(.hooks | map(.command) | sort | join("|"))
+          )
+        )
+      )
     | .enabledPlugins = (($user.enabledPlugins // {}) * ($tpl.enabledPlugins // {}))
     | .extraKnownMarketplaces = (($user.extraKnownMarketplaces // {}) * ($tpl.extraKnownMarketplaces // {}))
     | .model = ($user.model // $tpl.model)

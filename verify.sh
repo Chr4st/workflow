@@ -9,7 +9,7 @@ NC=$'\033[0m'
 
 pass=0
 fail=0
-total=9
+total=12
 
 pass_line() { printf "%s✓%s %s\n" "$GREEN" "$NC" "$*"; pass=$((pass+1)); }
 fail_line() { printf "%s✗%s %s\n" "$RED"   "$NC" "$*"; fail=$((fail+1)); }
@@ -54,12 +54,23 @@ else
   fail_line "scripts/hooks/session-start.js missing or invalid"
 fi
 
-# 5) zero-to-one.md is a symlink into the workflow repo
-Z2O="$HOME/.claude/commands/zero-to-one.md"
-if [ -L "$Z2O" ] && readlink "$Z2O" | grep -q 'workflow/commands/'; then
-  pass_line "commands/zero-to-one.md is a symlink into workflow/commands/"
-else
-  fail_line "commands/zero-to-one.md is not a symlink into workflow/commands/"
+# 5) all 3 command symlinks exist and point to valid files
+symlink_ok=true
+for cmd in zero-to-one.md one-to-n.md debug-test.md; do
+  dst="$HOME/.claude/commands/$cmd"
+  if [ -L "$dst" ]; then
+    target=$(readlink "$dst" 2>/dev/null || echo "")
+    if [ ! -f "$target" ]; then
+      fail_line "commands/$cmd is a dangling symlink → $target"
+      symlink_ok=false
+    fi
+  else
+    fail_line "commands/$cmd is not a symlink"
+    symlink_ok=false
+  fi
+done
+if [ "$symlink_ok" = true ]; then
+  pass_line "all 3 command symlinks valid and targets exist"
 fi
 
 # 6) statusLine key present
@@ -76,8 +87,30 @@ if command -v codex >/dev/null 2>&1; then
 elif [ -f "$OPTIN" ]; then
   fail_line "codex CLI not on PATH (you opted in during install)"
 else
-  warn_line "codex CLI not installed — user did not opt in, skipping"
+  warn_line "codex CLI not installed — user did not opt in"
   pass_line "codex check skipped (opt-out)"
+fi
+
+# 7b) all rule files present
+rule_count=$(find "$HOME/.claude/rules/common" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+if [ "${rule_count:-0}" -ge 11 ]; then
+  pass_line "~/.claude/rules/common has $rule_count .md files (>=11)"
+else
+  fail_line "~/.claude/rules/common has only ${rule_count:-0} .md files (need >=11)"
+fi
+
+# 7c) hooks registered in settings.json
+hooks_ok=true
+for hook_cmd in "session-start.js" "post-tool-learning.js" "semgrep-posttool.js" "session-end.js" "mentor-stop.js"; do
+  if [ -f "$SETTINGS" ] && grep -q "$hook_cmd" "$SETTINGS" 2>/dev/null; then
+    :
+  else
+    fail_line "hook $hook_cmd not registered in settings.json"
+    hooks_ok=false
+  fi
+done
+if [ "$hooks_ok" = true ]; then
+  pass_line "all 5 hook scripts registered in settings.json"
 fi
 
 # 8) semgrep-posttool.js exists and parses

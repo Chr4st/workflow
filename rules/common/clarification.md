@@ -8,7 +8,7 @@ This rule applies to every workflow (0→1, 1→n, debug+test) and every phase w
 
 ## Method
 
-Use the `AskUserQuestion` tool with **2–4 labeled options** per question. Batch up to 3 related questions in a single call. Each question must:
+Use the `AskUserQuestion` tool with **2–4 labeled options** per question. **Note:** `AskUserQuestion` is a deferred tool — load its schema via `ToolSearch("select:AskUserQuestion")` before first use in a session. Batch up to 3 related questions in a single call. Each question must:
 
 1. Have a short header (the decision area).
 2. Have a concrete question — not "is this ok?" or "what do you think?"
@@ -43,7 +43,7 @@ These are irreversible, high-blast-radius, or trust-boundary decisions. Always a
 These add friction when the answer is obvious. Apply judgment — ask only when genuinely ambiguous:
 
 - **File paths**: when the user says "the config file" and there's more than one candidate. Skip if there's only one match.
-- **Scope creep**: touching files or areas outside the explicit ask. **Exception:** if mentor.md growth-edge monitoring recommends the action (file >400 LOC needing extraction, mutation pattern needing immutable refactor), proceed with the improvement — mention it, but don't gate it.
+- **Scope creep**: touching files or areas outside the explicit ask. **Exception:** if mentor.md growth-edge monitoring recommends the action (file >150 LOC needing extraction, mutation pattern needing immutable refactor), proceed with the improvement — mention it, but don't gate it.
 - **Any ambiguous pronoun**: "it", "this", "the bug", "that function" — only when more than one referent is plausible AND the referent matters for the next action. If context makes the referent obvious, proceed.
 
 ## 0→1 Triggers (new projects)

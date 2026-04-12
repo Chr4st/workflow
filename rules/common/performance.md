@@ -56,13 +56,19 @@ For complex tasks requiring deep reasoning:
 - **Database review:** Haiku 4.5
 - **Architecture review:** Opus 4.6
 
+### Model precedence
+
+1. **Escalation triggers** (highest) — override everything when active.
+2. **Base routing** — the default tier for each reviewer type.
+3. **Agent file `model:` field** (lowest) — fallback when no routing rule applies.
+
 ### Escalation triggers (override base routing)
 
-After each reviewer completes, scan its output for escalation signals:
+Each reviewer MUST end its output with a confidence tag: `[CONFIDENCE: HIGH]`, `[CONFIDENCE: MEDIUM]`, or `[CONFIDENCE: LOW]`.
 
-1. **Hedging language escalation.** If output contains hedging about correctness or safety ("might be vulnerable", "could cause issues", "unclear whether this is safe", "I'm not sure"), escalate the NEXT reviewer one tier: Haiku → Sonnet → Opus.
+1. **Low confidence escalation.** If a reviewer outputs `[CONFIDENCE: LOW]`, escalate the NEXT reviewer one tier: Haiku → Sonnet → Opus.
 2. **Critical finding escalation.** If ANY reviewer finds a CRITICAL-severity issue, escalate ALL remaining reviewers to Sonnet 4.6 minimum.
-3. **De-escalation.** If two consecutive reviewers produce zero findings and no hedging, the next reviewer may drop one tier. Do not de-escalate below Haiku.
+3. **De-escalation.** If two consecutive reviewers output `[CONFIDENCE: HIGH]` with zero findings, the next reviewer may drop one tier. Do not de-escalate below Haiku.
 
 ### Escalation applies to these chains:
 - **Workflow A:** A26 (security) → A27 (language) → A28 (database) → A29 (codex)
@@ -112,6 +118,18 @@ At every context brief point (A25.5, B21.8, C22.5), classify each prior output:
 - **DROP**: Expired state (old git status before new commits), superseded plans (drafts replaced by approved plan), duplicate information (same finding from multiple tools), file content read but not relevant to review.
 
 Apply this classification BEFORE computing the context brief, not after. Do NOT drop anything from the current phase — only compress outputs from PRIOR phases.
+
+## Sub-Spec Architecture
+
+Long monolithic plans (>15 steps) waste context and degrade accuracy. Break work into sub-specs:
+
+1. **Planning sub-specs** → Opus. Each sub-spec is a focused 3-8 step plan for one slice of work (one module, one feature boundary, one integration surface).
+2. **Execution sub-specs** → Sonnet. Constrained implementation tasks with clear inputs/outputs from the plan.
+3. **Mechanical sub-specs** → Haiku. Bash commands, file copies, lint fixes, formatting — anything with a single correct answer.
+
+Each sub-spec runs as its own Agent, with only the KEEP outputs from prior sub-specs passed as context. This prevents context accumulation across phases: each agent starts fresh with a compressed brief, not the full conversation history.
+
+When a workflow step says "run /orchestrate" or "run /multi-plan", treat these as sub-spec boundaries. The orchestrator's output is a compressed summary, not the raw agent outputs.
 
 ## Telemetry
 

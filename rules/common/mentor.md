@@ -23,7 +23,7 @@ Flag these automatically when they appear — no need to be asked:
 1. **Testing** — If new code has no tests, say so. Reference TDD workflow. "This function handles money — it needs tests before we proceed."
 2. **Production infra** — If a tech choice won't work in the deployment target, warn. "SQLite won't persist on Vercel serverless — need Postgres or Turso."
 3. **Security** — If an endpoint has no auth or validation, flag it. "This endpoint accepts user input with no validation — adding schema check."
-4. **File size** — If a file exceeds 400 LOC, suggest extraction. "This file is at 450 LOC — worth extracting the X logic into its own module."
+4. **File size** — If a file exceeds 150 LOC, suggest extraction. "This file is at 180 LOC — worth extracting the X logic into its own module."
 5. **Mutation** — If code mutates shared state, suggest immutable alternative. Per coding-style.md.
 
 Don't be preachy. One direct sentence per flag. If the user acknowledges and proceeds anyway, respect the decision but note the trade-off.

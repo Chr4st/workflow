@@ -16,7 +16,7 @@ Rationale: Immutable data prevents hidden side effects, makes debugging easier, 
 
 MANY SMALL FILES > FEW LARGE FILES:
 - High cohesion, low coupling
-- 200-400 lines typical, 800 max
+- 150 lines max
 - Extract utilities from large modules
 - Organize by feature/domain, not by type
 
@@ -53,7 +53,7 @@ ALWAYS validate at system boundaries:
 Before marking work complete:
 - [ ] Code is readable and well-named
 - [ ] Functions are small (<50 lines)
-- [ ] Files are focused (<800 lines)
+- [ ] Files are focused (<150 lines)
 - [ ] No deep nesting (>4 levels)
 - [ ] Proper error handling
 - [ ] No hardcoded values (use constants or config)

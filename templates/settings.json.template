@@ -125,7 +125,7 @@
   "model": "claude-opus-4-6",
   "statusLine": {
     "type": "command",
-    "command": "bash \"HOME_PATH/.claude/plugins/cache/caveman/caveman/600e8efcd6ac/hooks/caveman-statusline.sh\""
+    "command": "bash \"CAVEMAN_STATUSLINE_PATH\""
   },
   "hooks": {
     "SessionStart": [
