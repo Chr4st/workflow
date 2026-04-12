@@ -160,6 +160,16 @@ The first pitfall is **fixing a symptom instead of a root cause**, which Phase 3
 
 The command file at `commands/debug-test.md` narrates each phase. The `[suspect]` argument is optional but useful: if you have a hunch about which symbol is at fault, passing it lets Phase 2 start from `mcp__gitnexus__impact <suspect>` directly instead of having to hunt for the suspect first.
 
+## Clarification gates (always on)
+
+Every workflow enforces mandatory clarification gates at phase boundaries. The principle is simple: when in doubt, **ask** via `AskUserQuestion` with labeled options — never guess on anything that affects correctness, scope, reversibility, or shared state.
+
+The full policy lives at `~/.claude/rules/common/clarification.md` and is loaded globally. Each workflow command file adds its own phase-specific triggers on top. Universal triggers include tech-stack picks, destructive git ops, scope creep, schema changes, secrets, and any plan touching more than three files. Workflow-specific triggers include runtime/deployment/persistence/auth decisions in 0→1, blast-radius and migration decisions in 1→n, and reproduction/rollback/codex-rescue decisions in debug+test.
+
+If a gate is hit and the user is unresponsive, Claude must output `[BLOCKED: awaiting <decision>]` and stop rather than proceeding on an assumption. The one exception is reversible, local, read-only actions (reads, greps, listings) — those never require clarification.
+
+This gate system exists specifically to stop the failure mode where an agent interprets a vague prompt, picks a default, ships it, and the user discovers thirty minutes later that the wrong framework / database / branch / auth model was used. It is verbose by design. If the verbosity becomes a drag, tell Claude "skip clarifications for this task" and it will record the defaults it picked so you can audit them at the end.
+
 ## Cross-cutting defaults
 
 These defaults apply to all three workflows. They are enforced by hooks and skills that are already installed, so in most cases you do not have to do anything — you just need to know they exist so you can trust what is automatic versus what you must invoke manually.
