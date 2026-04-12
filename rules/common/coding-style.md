@@ -20,6 +20,18 @@ MANY SMALL FILES > FEW LARGE FILES:
 - Extract utilities from large modules
 - Organize by feature/domain, not by type
 
+## Structured Reasoning Before Implementation
+
+Before writing any non-trivial implementation (>10 lines), decompose logic into:
+
+1. **Sequential** — what steps execute in order?
+2. **Branch** — what conditions determine different paths?
+3. **Loop** — what repeats, and what terminates it?
+
+Write this decomposition as a brief plan (3-5 lines), then implement from it. Yields +13.79% correctness, -36% code smells (ACM TOSEM 2025).
+
+Skip for trivial code (config, imports, type definitions, single-expression functions).
+
 ## Error Handling
 
 ALWAYS handle errors comprehensively:

@@ -165,6 +165,7 @@ An "integration seam" for this workflow means: the outermost point at which data
   - C/C++ → `cpp-testing`
   - Browser flows → `e2e-testing`
   Using the framework skill is not optional — hand-rolled scaffolding in a codebase that has a test framework creates two parallel test styles, and the next maintainer will delete one of them without asking which.
+- **B20.5** — **Property-based testing at integration seams.** Generate property tests for cross-module interfaces: input validation invariants, serialization round-trips, idempotency, monotonicity. Use `hypothesis`/`fast-check`/`gopter`/`proptest`. Catches 37.3% more bugs (arXiv:2506.18315).
 - **B21** — For every cross-module call that Phase 2 flagged as part of the blast radius, write a **contract test** that pins the current behaviour of the caller. The goal is: if your Phase 5 changes break a caller, this test fails loudly at Phase 6 instead of the bug slipping through into production. Contract tests are cheap insurance compared to the cost of a hotfix.
 
 All tests written in this phase should be RED after Phase 4. If any is already GREEN, it is testing the wrong thing — rewrite it. A passing test in Phase 4 is a false negative; it tells you nothing about whether your Phase 5 implementation will actually land the change.
@@ -192,7 +193,7 @@ Keep the Phase 4 tests running locally during Phase 5 where possible — instant
 
 Run checks in order so you fail fast on the cheap ones. Do NOT skip to the expensive ones just because "tests passed locally". The staging order matters: every minute saved by failing at B27 instead of B30 is a minute you do not spend rerunning a Playwright suite on a fix that was going to fail the type checker anyway.
 
-- **B27** — `/verify` for the comprehensive fast loop: build → types → lint → unit tests → console.log scan → git status sanity. This should pass in under a minute on most repos; if it takes longer your build is the problem, not this step.
+- **B27** — **Lint feedback loop + /verify.** Run linter + type-checker first. If violations: feed back, auto-fix, cap 2 iterations (+24% per ICSME 2025). Then full `/verify` for the comprehensive fast loop: build → types → lint → unit tests → console.log scan → git status sanity. This should pass in under a minute on most repos; if it takes longer your build is the problem, not this step.
 - **B28** — Load the stack-specific verification skill for framework-aware checks. General-purpose lint catches about 60% of framework pitfalls; the framework skill catches the other 40%:
   - Django → `django-verification`
   - Spring Boot → `springboot-verification`
@@ -207,14 +208,13 @@ Phase 6 ends only when every step from B27 through B30 passes. If coverage is be
 
 ### Phase 7 — Review
 
-Three reviewers in parallel, then two sequential second opinions. Parallelism here is the throughput win — a sequential review pass on a 20-file change is slow enough that you will be tempted to skip reviewers, and skipped reviewers are how bugs ship.
+Four reviewers in sequence, each building on the prior reviewer's findings. Sequential chaining means later reviewers see earlier findings and avoid duplicating work — and the adversarial reviewer at the end gets the full picture (arXiv:2511.02309).
 
-- **B32** — Language-specific reviewer (`/go-review` / `/python-review` as applicable) — `/orchestrate feature` or `/code-review` already covers generic code review; this step adds language-specific depth. Skip if no language-specific reviewer exists. Use Haiku 4.5 model.
-- **B33** — `/code-review` always. Per CLAUDE.md, this is mandatory after any code write. No exceptions for "trivial" changes — trivial changes are where reviewers stop paying attention and that is exactly where regressions hide.
-- **B34** — `Agent(database-reviewer)` in parallel with B32/B33, but only if the change touches schema, queries, or migrations. For query-heavy changes, pair this with the `database-migrations` skill so the reviewer has the migration context in scope.
-- **B35** — `Agent(security-reviewer)` (CONDITIONAL) — run only if this PR touches auth, crypto, input validation, secrets, error message formatting, or API endpoint definitions. For CSS-only, docs-only, or test-only changes, skip and note 'security review skipped: no security surface' in PR body.
-- **B36** — After the parallel reviewers return, run `/codex:adversarial-review` for the pre-merge second opinion. This is the second GPT-5.4 gate (first was B17 on the plan). Review `/codex:result` output manually — do not auto-apply any fixes it proposes (forbidden by the codex plugin rules).
-- **B36.5** — **Merge reviewer outputs.** Orchestrator deduplicates findings across B32–B36, reconciles conflicts, produces one unified review digest for the user.
+- **B32** — `Agent(security-reviewer)` FIRST (CONDITIONAL) — run only if this PR touches auth, crypto, input validation, secrets, error message formatting, or API endpoint definitions. For CSS-only, docs-only, or test-only changes, skip and note 'security review skipped: no security surface' in PR body. Use Sonnet 4.6 model. Output: security findings list passed forward to all subsequent reviewers.
+- **B33** — Language-specific reviewer SECOND (`/go-review` / `/python-review` as applicable). Receives context brief + B32 security findings as input. This step adds language-specific depth on top of generic code review. Skip if no language-specific reviewer exists. Use Haiku 4.5 model.
+- **B34** — `Agent(database-reviewer)` THIRD — only if the change touches schema, queries, or migrations. Receives cumulative B32 + B33 findings. For query-heavy changes, pair this with the `database-migrations` skill so the reviewer has the migration context in scope.
+- **B35** — `/codex:adversarial-review` FOURTH for the pre-merge second opinion. Receives all prior findings (B32 + B33 + B34) as input context. This is the second GPT-5.4 gate (first was B17 on the plan). Review `/codex:result` output manually — do not auto-apply any fixes it proposes (forbidden by the codex plugin rules).
+- **B36.5** — **Merge reviewer outputs.** Findings are already chained sequentially (B32→B33→B34→B35), so each reviewer built on prior context. Orchestrator deduplicates, reconciles conflicts, produces one unified review digest for the user.
 - **B37** — `/caveman-review` last — produces the one-line PR-comment version of everything the reviewers found, which is what you will paste into the PR description.
 
 Address CRITICAL and HIGH findings before Phase 8. MEDIUM findings: fix if cheap, defer with a one-line note in the PR body otherwise. LOW findings: note in the session memory entry at B44 for later sweeps, do not block the PR on them.
@@ -251,7 +251,7 @@ Quick reference for which plugin each phase leans on, so you can debug coverage 
 | 4 TDD | `/tdd`, stack testing skills | — | — | — |
 | 5 Execute | `/multi-execute`, `/multi-backend`, `/multi-frontend`, write-time skills, `/refactor-clean` | — | — | — |
 | 6 Verify | `/verify`, stack verification skills, `/test-coverage`, `/e2e`, `/build-fix` | — | — | — |
-| 7 Review | `/code-review`, language-specific review, `Agent(database-reviewer)`, `Agent(security-reviewer)` | `/codex:adversarial-review` | `/caveman-review` | — |
+| 7 Review | `Agent(security-reviewer)` → language-specific review → `Agent(database-reviewer)` (sequential chain) | `/codex:adversarial-review` (final in chain) | `/caveman-review` | — |
 | 8 Ship | `/update-codemaps`, `/update-docs`, `Agent(doc-updater)`, `/checkpoint`, `/vault-session`, `/learn`, `/evolve` | — | `/caveman-commit` | `gitnexus` (`detect_changes`), `engram` (`mem_save`, `mem_session_summary`), `github` (`gh pr create`) |
 
 ---
@@ -262,7 +262,7 @@ Quick reference for which plugin each phase leans on, so you can debug coverage 
 - Phase 1: **3 Explore agents in parallel** (B7) with different angles
 - Phase 3: **3 reviewer agents in parallel** (B16) — planner, architect, security
 - Phase 5: **N worker agents in parallel** via `/multi-execute` (B22), one per file or logical chunk
-- Phase 7: **3 reviewers in parallel** (B32–B35), then sequential adversarial review
+- Phase 7: **Sequential reviewers** (B32→B33→B34→B35) — each receives cumulative findings from prior steps. arXiv:2511.02309
 
 **Model selection** (from `performance.md`):
 - **Opus 4.6** — Phases 3 and 7 (planning, architecture, adversarial synthesis)
@@ -306,7 +306,7 @@ Do not pass these checkpoints silently. Use `AskUserQuestion`.
 - Every symbol touched had a `mcp__gitnexus__impact` check recorded in the plan file before it was edited.
 - Every integration seam in the blast radius has a contract test from Phase 4 that was RED before Phase 5 and GREEN after.
 - Phase 6 passed end-to-end without skipped steps; coverage on changed lines ≥ 80%.
-- Phase 7 ran three parallel reviewers plus the Codex adversarial pass with no unresolved CRITICAL/HIGH findings.
+- Phase 7 ran four sequential reviewers (security → language → database → Codex adversarial) with no unresolved CRITICAL/HIGH findings.
 - gitnexus and codemaps refreshed in Phase 8 (B38 + B40) so the *next* 1→n run starts from accurate state.
 - `mem_save` recorded the decision (not just the diff) and `mem_session_summary` fired before you said "done".
 - PR body cites the impact findings, the test plan, and the review findings — a reviewer can trust the change without reading the whole diff first.

@@ -12,6 +12,8 @@ cd workflow
 
 Idempotent, with automatic backups. See `docs/BUNDLE.md` for what gets installed and `docs/TROUBLESHOOTING.md` if something breaks.
 
+For real-time telemetry (context usage, tokens, active agents), also run: `claude plugin install claude-hud@claude-hud`. See `INSTALL.md` § 9e.
+
 ## Quickstart
 
 1. **Install the three plugins and MCP servers.** See `INSTALL.md` for the full procedure. At minimum you need `everything-claude-code`, `codex`, and `caveman` installed, plus engram and gitnexus running as MCP servers. The other MCPs (exa-web-search, firecrawl, github, supabase, context7, sequential-thinking, filesystem) are used by at least one phase of at least one workflow; install all of them or accept that some steps will be no-ops.

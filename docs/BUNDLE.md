@@ -66,6 +66,7 @@ The bundle depends on three third-party plugins, each pinned to a specific versi
 | `everything-claude-code` | `1.7.0` | `affaan-m/everything-claude-code` |
 | `codex` | `1.0.2` | `openai/codex-plugin-cc` |
 | `caveman` | `600e8efcd6ac` | `JuliusBrussee/caveman` |
+| `claude-hud` | latest | `jarrodwatts/claude-hud` |
 
 The `caveman` pin is a git SHA rather than a semver tag because the caveman marketplace does not publish semver releases. `install.sh` passes the SHA to `claude plugin install` which resolves it against the marketplace's git history. If the SHA ever gets garbage collected upstream, pin-bumping is a one-line change in `install.sh`.
 

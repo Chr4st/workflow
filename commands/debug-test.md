@@ -118,6 +118,7 @@ Map the blast radius before forming a hypothesis. Parallelize anything independe
     - Spring Boot: `springboot-tdd`
     - C++: `cpp-testing`
     - E2E / user-facing: `e2e-testing`
+12.5. **C12.5.** **Property-based test for bug class.** Beyond the specific reproduction test, write a property test covering the CLASS of bug. Example: off-by-one in pagination → property: "for all valid page sizes and offsets, returned count equals min(page_size, remaining)". Use `hypothesis`/`fast-check`/`gopter`/`proptest`.
 13. **C13.** Confirm the test fails **for the right reason**. Run it and read the failure output. A test that fails because of a typo in the assertion, a missing import, or a setup error is worse than no test — it will go green after the "fix" without proving anything. The failure message must match `$ERROR_TEXT` from C3, or clearly describe the same defect.
 
 **Gate:** Do NOT proceed to Phase 4 until the test is RED for the right reason. If you cannot get it RED, your hypothesis from Phase 2 is wrong — return to C7.
@@ -129,7 +130,7 @@ Minimum viable patch. No refactoring, no tidying, no "while I'm in here" edits. 
 14. **C14.** Apply the minimal diff. Write the smallest change that turns the RED test GREEN. If you find yourself rewriting a function, stop — extract the rewrite into a follow-up ticket.
 15. **C15.** Run the locked test from C11. It must now pass. If it doesn't, revert, re-read the hypothesis, and try again. Do not escalate the diff — escalate the investigation.
 15.5. **C15.5.** **Milestone mem_save (fix confirmed).** Save the root cause, fix pattern, and what test locked it while reasoning is fresh. Topic key: `<repo>/bugfix/<bug-slug>`. Type: `bugfix`. Don't wait until Phase 7 — compaction may evict the debugging reasoning.
-16. **C16.** Run `/verify` (skill `verify`, alias `verification-loop`). Full loop: build + types + lint + tests + console.log check + git status. This is the cheap-to-expensive gate. Fail fast here before wasting time on coverage or review.
+16. **C16.** **Lint feedback loop + /verify.** Linter + type-checker on changed files. Violations → feed back, auto-fix, cap 2 iterations. Then full `/verify` (skill `verify`, alias `verification-loop`): build + types + lint + tests + console.log check + git status. This is the cheap-to-expensive gate. Fail fast here before wasting time on coverage or review.
 17. **C17.** Run `/test-coverage` (skill `test-coverage`) to confirm the new test actually counts and the module under repair still meets the 80% threshold from `testing.md`.
 
 **Gate:** If C15 loops without convergence for more than **two full iterations** on the same symptom, do NOT keep grinding — jump to Phase 5. Claude Code has a well-documented tendency to loop on hard bugs; the Codex rescue path exists to break that loop.
@@ -154,19 +155,19 @@ Trigger condition: you have looped C14–C16 more than twice on the same symptom
 
 A fix is not done when the test turns green. It is done when the reviewers certify nothing adjacent broke and no new attack surface was introduced.
 
-22.5. **C22.5.** **Compute context brief for reviewers.** Before launching parallel reviewers, compute: (1) the bug root cause (one sentence), (2) files changed with diff summary, (3) the locked test from C11 and its assertion, (4) `/verify` results from C16. Inject into each reviewer's prompt so they skip re-investigation of the bug and focus on the fix quality.
-23. **C23.** Run `Agent(code-reviewer)` or `/code-review` (skill `code-review`). Mandatory per `CLAUDE.md`. Look for neighboring breakage: call sites you didn't notice, shared state you mutated, error paths you silenced.
-24. **C24.** Run the language-specific reviewer in parallel with C23:
+22.5. **C22.5.** **Compute context brief for reviewers.** Before launching reviewers, compute: (1) the bug root cause (one sentence), (2) files changed with diff summary, (3) the locked test from C11 and its assertion, (4) `/verify` results from C16. Pass this brief forward through the reviewer chain so each reviewer builds on prior findings instead of re-investigating the bug.
+23. **C23.** `Agent(security-reviewer)` or skill `security-review` — **CONDITIONAL, runs FIRST.** Sonnet 4.6. Run only if the bug or fix touches auth, crypto, input validation, secrets, or error messages. For logic bugs, perf fixes, or UI-only bugs, skip and note "security review skipped: no security surface." When run, its findings feed into C24.
+24. **C24.** Run `Agent(code-reviewer)` or `/code-review` (skill `code-review`). **Runs SECOND.** Receives the context brief from C22.5 plus any security findings from C23. Mandatory per `CLAUDE.md`. Look for neighboring breakage: call sites you didn't notice, shared state you mutated, error paths you silenced.
+25. **C25.** Run the language-specific reviewer **THIRD.** Haiku 4.5. Receives cumulative findings from C23 and C24. Pick the right reviewer:
     - Go: `/go-review` (skill `go-review`)
     - Python: `/python-review` (skill `python-review`)
     - Database or schema changes: `Agent(database-reviewer)`
-25. **C25.** `Agent(security-reviewer)` or skill `security-review` — **CONDITIONAL:** run only if the bug or fix touches auth, crypto, input validation, secrets, or error messages. For logic bugs, perf fixes, or UI-only bugs, skip and note "security review skipped: no security surface."
-25.5. **C25.5.** **Merge reviewer outputs.** Orchestrator deduplicates findings from C23–C25, produces one unified review. Present to user as a single list, not three separate reports.
+25.5. **C25.5.** **Compile final review.** Findings are already chained — each reviewer received prior findings as input. Deduplicate any overlaps and present to user as a single unified list.
 26. **C26.** If the bug is user-facing, run `/e2e` (skill `e2e`, agent `e2e-runner`). Prefers Vercel Agent Browser, falls back to Playwright. A unit test alone does not protect against re-regressions in the UI layer.
 27. **C27.** If the build is red, run `/build-fix` (skill `build-fix`, agent `build-error-resolver`) or `/go-build` for Go projects. Minimum-diff only — do not let the build fixer broaden the change.
 28. **C28.** Run `/refactor-clean` (skill `refactor-clean`, agent `refactor-cleaner`) — **batched:** run only if the fix touched >3 files. Bug fixes are usually 1–2 files; running knip/depcheck on a 1-file fix wastes time.
 
-**Parallelization:** C23 + C24 + C25 are independent — launch them in a single message as parallel tool calls. C26–C28 depend on their results, so run them sequentially after the reviewers return.
+**Execution order:** C23 → C24 → C25 run sequentially — each reviewer receives the cumulative findings from its predecessors, producing a chained review where later reviewers build on earlier findings instead of duplicating work. C26–C28 depend on the unified review output, so run them sequentially after C25 completes.
 
 ### Phase 7 — Persist Knowledge (C29–C35)
 
@@ -204,7 +205,7 @@ Non-negotiable. The memory step is what prevents the same class of bug from recu
 
 **Parallelization:**
 - Phase 2 investigators (C7): up to 3 parallel `Agent(Explore)` calls in a single message. Distinct angles per explorer — do not give them overlapping prompts.
-- Phase 6 reviewers (C23–C25): code-reviewer + language-reviewer + security-reviewer in a single message. They are independent and their outputs compose cleanly.
+- Phase 6 reviewers (C23–C25): security-reviewer → code-reviewer → language-reviewer, run sequentially. Each reviewer receives cumulative findings from its predecessors, so later reviewers build on earlier context instead of rediscovering the same issues.
 - Everything else is sequential because each step depends on the previous result (reproduce → investigate → test → fix → verify → persist). Do not parallelize the core spine.
 
 **Model selection (per `performance.md`):**

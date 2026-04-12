@@ -75,3 +75,7 @@ If build fails:
 | `/codex:rescue` | ~10k | 5 min | Including Codex job time |
 
 On timeout: skip the step, note it in the PR body, and continue. Do not let runaway steps block the workflow.
+
+## Telemetry
+
+Install `claude-hud` (jarrodwatts/claude-hud) for real-time visibility into context window fill, tokens consumed per turn, and active agent count. Run `claude plugin install claude-hud@claude-hud` once. No config needed — it reads Claude Code runtime state directly. Use the overlay to detect runaway context consumption before hitting compaction.

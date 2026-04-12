@@ -175,6 +175,7 @@
     "everything-claude-code@everything-claude-code": true,
     "codex@openai-codex": true,
     "caveman@caveman": true,
+    "claude-hud@claude-hud": true,
     "ck@cavekit-local": true,
     "bp@cavekit-local": true
   },
@@ -195,6 +196,12 @@
       "source": {
         "source": "github",
         "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "claude-hud": {
+      "source": {
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
       }
     },
     "cavekit-local": {

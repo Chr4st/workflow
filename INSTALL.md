@@ -612,7 +612,32 @@ Per `performance.md`, the workflow commands route work to three different models
 
 The default model in `~/.claude/settings.json` should be `claude-opus-4-6` for planning-heavy work, `claude-sonnet-4-6` for implementation-heavy work. Swap via `/model <name>` at any time.
 
-### 9e. ck / bp plugins (Chris's local plugins)
+### 9e. Telemetry with claude-hud (optional)
+
+For real-time visibility into context usage, active tools, and agent tracking, install the `claude-hud` plugin:
+
+```
+claude plugin install claude-hud@claude-hud
+```
+
+Then add the marketplace and enable in `~/.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": {
+    "claude-hud@claude-hud": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-hud": {
+      "source": { "source": "github", "repo": "jarrodwatts/claude-hud" }
+    }
+  }
+}
+```
+
+This gives you a statusline overlay showing tokens consumed per turn, context window fill %, and active agent count. No configuration beyond install — it reads Claude Code's runtime state directly.
+
+### 9f. ck / bp plugins (Chris's local plugins)
 
 Chris's `settings.json` also enables `ck@cavekit-local` and `bp@cavekit-local` from a local marketplace at `~/.claude/plugins/local/cavekit-marketplace`. These are personal and not required for the playbook — skip unless you have the source.
 
