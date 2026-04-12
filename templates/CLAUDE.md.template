@@ -1,0 +1,9 @@
+<!--
+This file is a template. On install, it is copied to ~/.claude/CLAUDE.md if that file
+does not exist. If ~/.claude/CLAUDE.md already exists, install.sh appends this content
+as a new section rather than overwriting.
+-->
+
+## Global Conventions (your customizations here)
+
+Add project-wide conventions, vault integrations, or tooling paths here. This template ships empty — populate it with your own preferences. Examples you might add: Obsidian vault path + conventions, preferred editor, default license, personal shortcut aliases.

@@ -1,0 +1,207 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Agent",
+      "Skill",
+      "WebFetch",
+      "WebSearch",
+      "NotebookEdit",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskGet",
+      "TaskList",
+      "TaskOutput",
+      "TaskStop",
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "RemoteTrigger",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(go:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(make:*)",
+      "Bash(cargo:*)",
+      "Bash(brew:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(mongosh:*)",
+      "Bash(mongo:*)",
+      "Bash(pm2:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(tar:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(pwd:*)",
+      "Bash(which:*)",
+      "Bash(whereis:*)",
+      "Bash(echo:*)",
+      "Bash(printf:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(diff:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(tr:*)",
+      "Bash(cut:*)",
+      "Bash(xargs:*)",
+      "Bash(tee:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(touch:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Bash(ln:*)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(ps:*)",
+      "Bash(env:*)",
+      "Bash(export:*)",
+      "Bash(jq:*)",
+      "Bash(yq:*)",
+      "Bash(date:*)",
+      "Bash(uname:*)",
+      "Bash(stat:*)",
+      "Bash(file:*)",
+      "Bash(realpath:*)",
+      "Bash(basename:*)",
+      "Bash(dirname:*)",
+      "Bash(test:*)",
+      "mcp__engram__mem_save",
+      "mcp__engram__mem_search",
+      "mcp__engram__mem_context",
+      "mcp__engram__mem_session_summary",
+      "mcp__engram__mem_get_observation",
+      "mcp__engram__mem_save_prompt",
+      "mcp__engram__mem_update",
+      "mcp__engram__mem_suggest_topic_key",
+      "mcp__engram__mem_session_start",
+      "mcp__engram__mem_session_end",
+      "mcp__engram__mem_stats",
+      "mcp__engram__mem_delete",
+      "mcp__engram__mem_timeline",
+      "mcp__engram__mem_capture_passive",
+      "mcp__engram__mem_merge_projects",
+      "mcp__gitnexus__context",
+      "mcp__gitnexus__impact",
+      "mcp__gitnexus__api_impact",
+      "mcp__gitnexus__query",
+      "mcp__gitnexus__cypher",
+      "mcp__gitnexus__detect_changes",
+      "mcp__gitnexus__list_repos",
+      "mcp__gitnexus__rename",
+      "mcp__gitnexus__route_map",
+      "mcp__gitnexus__shape_check",
+      "mcp__gitnexus__tool_map",
+      "mcp__claude_ai_Gmail__authenticate",
+      "mcp__claude_ai_Google_Calendar__authenticate"
+    ]
+  },
+  "model": "claude-opus-4-6",
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"HOME_PATH/.claude/plugins/cache/caveman/caveman/600e8efcd6ac/hooks/caveman-statusline.sh\""
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/session-start.js",
+            "timeout": 30,
+            "statusMessage": "Loading previous session context..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/post-tool-learning.js",
+            "timeout": 10,
+            "statusMessage": "Capturing learning..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/session-end.js",
+            "timeout": 60,
+            "statusMessage": "Saving session summary..."
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/mentor-stop.js",
+            "timeout": 10,
+            "statusMessage": "Mentor checkpoint..."
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "everything-claude-code@everything-claude-code": true,
+    "codex@openai-codex": true,
+    "caveman@caveman": true,
+    "ck@cavekit-local": true,
+    "bp@cavekit-local": true
+  },
+  "extraKnownMarketplaces": {
+    "everything-claude-code": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "cavekit-local": {
+      "source": {
+        "source": "directory",
+        "path": "HOME_PATH/.claude/plugins/local/cavekit-marketplace"
+      }
+    }
+  }
+}

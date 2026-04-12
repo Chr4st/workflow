@@ -2,6 +2,16 @@
 
 This repository is the operational playbook for running Claude Code against three distinct kinds of software work: greenfield projects, feature development inside a large existing codebase, and debug plus regression hardening. It is written for Chris's specific setup (`everything-claude-code@1.7.0`, `codex@1.0.2`, `caveman@600e8efc`, plus the engram / gitnexus / exa / firecrawl / github / supabase / context7 / sequential-thinking / filesystem MCPs) but it works unchanged for anyone who installs the same plugins and MCP bundle. The value is not in the commands themselves — those already exist in the plugins — but in the *ordering* of them. Each workflow is a linear, plugin-specific pipeline that removes the cost of re-deciding order every session. You run the slash command, you follow the phases, you finish with a committed change plus updated memory, vault note, and code graph. No improvisation required.
 
+## Quick install
+
+```bash
+git clone https://github.com/Chr4st/workflow.git
+cd workflow
+./install.sh
+```
+
+Idempotent, with automatic backups. See `docs/BUNDLE.md` for what gets installed and `docs/TROUBLESHOOTING.md` if something breaks.
+
 ## Quickstart
 
 1. **Install the three plugins and MCP servers.** See `INSTALL.md` for the full procedure. At minimum you need `everything-claude-code`, `codex`, and `caveman` installed, plus engram and gitnexus running as MCP servers. The other MCPs (exa-web-search, firecrawl, github, supabase, context7, sequential-thinking, filesystem) are used by at least one phase of at least one workflow; install all of them or accept that some steps will be no-ops.
@@ -204,12 +214,19 @@ Confirm the plugins themselves with `/codex:setup` (Codex CLI is ready), `/proje
 
 ```
 workflow/
-├── README.md (this file)
-├── INSTALL.md
-└── commands/
-    ├── zero-to-one.md
-    ├── one-to-n.md
-    └── debug-test.md
+├── commands/          # 3 workflow slash commands
+├── rules/common/      # 11 global rule files
+├── agents/            # 14 agent definitions
+├── scripts/
+│   ├── hooks/         # 4 lifecycle hooks
+│   └── lib/           # 6 shared libraries
+├── templates/         # CLAUDE.md, settings.json, env templates
+├── docs/              # BUNDLE.md + TROUBLESHOOTING.md
+├── install.sh
+├── uninstall.sh
+├── verify.sh
+├── INSTALL.md         # manual install fallback
+└── README.md
 ```
 
 `README.md` is this document — the central guide and the first thing to read. `INSTALL.md` covers the step-by-step setup for the three plugins, MCP server configuration, hook enablement, `MAX_THINKING_TOKENS` configuration, and Wispr Flow prerequisite installation. The `commands/` directory holds the three runnable slash commands, one per workflow. Each command file narrates its phases as it runs, so you can follow along and know which gate you are at.

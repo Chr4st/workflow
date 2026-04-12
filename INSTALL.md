@@ -1,5 +1,17 @@
 # Installation Guide — Claude Code Workflow Playbook
 
+## Recommended: automated install
+
+```bash
+git clone https://github.com/Chr4st/workflow.git
+cd workflow
+./install.sh
+```
+
+That handles steps 1–11 below automatically, with backups. The manual steps below are for debugging, partial reinstalls, or users who want to understand each action.
+
+---
+
 This guide walks you through setting up a Claude Code environment that can run all three workflows in the playbook end-to-end: `zero-to-one` (greenfield), `one-to-n` (features in large codebases), and `debug-test` (reproduce → lock → fix → persist). When you finish, you will have three plugins installed (`everything-claude-code`, `codex`, `caveman`), nine MCP servers wired up (`engram`, `gitnexus`, `exa-web-search`, `firecrawl`, `github`, `supabase`, `context7`, `sequential-thinking`, `filesystem`), lifecycle hooks active (session context load, auto-format, pattern extraction, terse-mode toggle), an optional Obsidian Brain vault for long-term memory, and the three workflow slash commands registered with Claude Code. Expect **~30 minutes** of wall-clock time if prerequisites are already in place, or **~60 minutes** from a clean Mac. Primary target is **macOS 14+**. Linux works with minor path adjustments (noted inline); Windows requires WSL2.
 
 ---
@@ -350,6 +362,8 @@ Take the single directory name that appears and substitute it into the path. Aft
 
 ## Step 5 — Install the workflow playbook commands
 
+> Automated path: `./install.sh` handles this in step 6 (copy files) and step 7 (symlink commands). Manual steps below are for debugging.
+
 The three playbook commands live in `~/workflow/commands/`:
 
 - `zero-to-one.md` — Workflow A (greenfield)
@@ -395,6 +409,8 @@ Skip registration and invoke with `Read ~/workflow/commands/zero-to-one.md` at s
 ---
 
 ## Step 6 — Configure global rules
+
+> Automated path: `./install.sh` handles this in step 6 (copy files) and step 7 (symlink commands). Manual steps below are for debugging.
 
 Chris's global rules live in `~/.claude/CLAUDE.md` and `~/.claude/rules/common/*.md`. They define:
 
