@@ -26,17 +26,25 @@ Use the `AskUserQuestion` tool with **2–4 labeled options** per question. Batc
 
 ## Universal Triggers (any workflow)
 
-Ask before:
+### Hard Gates (never skip, never assume)
 
-- **Tech stack**: language, framework, runtime, package manager — when not already declared.
-- **File paths**: when the user says "the config file" and there's more than one candidate.
+These are irreversible, high-blast-radius, or trust-boundary decisions. Always ask via `AskUserQuestion`:
+
 - **Destructive git**: `git reset --hard`, `git push --force`, `git branch -D`, `git checkout -- .`, `git clean -fd`, amending published commits.
-- **Scope creep**: touching files or areas outside the explicit ask. If a fix "naturally leads to" refactoring an adjacent file — stop and ask.
 - **Schema / config / env changes**: any modification to shared config, migrations, env vars, secrets.
 - **Third-party uploads**: pastebins, gists, diagram services, any tool that publishes code externally.
+- **Tech stack**: language, framework, runtime, package manager — when not already declared.
+- **Installing new dependencies**: confirm each new dep before `npm install` / `pip install` / `cargo add`.
 - **Plans touching >3 files**: show plan first, ask approval before editing.
 - **Any choice between two non-equivalent approaches**: performance vs simplicity, speed vs correctness, feature A vs feature B.
-- **Any ambiguous pronoun**: "it", "this", "the bug", "that function" — when more than one referent is plausible.
+
+### Soft Gates (skip if context is unambiguous)
+
+These add friction when the answer is obvious. Apply judgment — ask only when genuinely ambiguous:
+
+- **File paths**: when the user says "the config file" and there's more than one candidate. Skip if there's only one match.
+- **Scope creep**: touching files or areas outside the explicit ask. **Exception:** if mentor.md growth-edge monitoring recommends the action (file >400 LOC needing extraction, mutation pattern needing immutable refactor), proceed with the improvement — mention it, but don't gate it.
+- **Any ambiguous pronoun**: "it", "this", "the bug", "that function" — only when more than one referent is plausible AND the referent matters for the next action. If context makes the referent obvious, proceed.
 
 ## 0→1 Triggers (new projects)
 

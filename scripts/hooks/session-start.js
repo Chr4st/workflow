@@ -97,6 +97,7 @@ async function main() {
       log('[SessionStart] Mentor context loaded');
     }
   } catch (err) {
+    console.log('[Mentor] Warning: context degraded (engram/gitnexus unreachable). Impact analysis may be stale.');
     log(`[SessionStart] Mentor context failed (non-blocking): ${err.message}`);
   }
 

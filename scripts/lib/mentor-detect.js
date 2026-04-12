@@ -145,6 +145,7 @@ async function detectAndLoadMentorContext(cwd) {
     return buildMentorContext(projectName, isIndexed, memories);
   } catch (err) {
     // Never block session start
+    console.log('[Mentor] Warning: mentor context loading failed:', err.message);
     return `[Mentor] Context loading failed: ${err.message}`;
   }
 }

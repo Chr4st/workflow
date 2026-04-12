@@ -128,6 +128,7 @@ Minimum viable patch. No refactoring, no tidying, no "while I'm in here" edits. 
 
 14. **C14.** Apply the minimal diff. Write the smallest change that turns the RED test GREEN. If you find yourself rewriting a function, stop — extract the rewrite into a follow-up ticket.
 15. **C15.** Run the locked test from C11. It must now pass. If it doesn't, revert, re-read the hypothesis, and try again. Do not escalate the diff — escalate the investigation.
+15.5. **C15.5.** **Milestone mem_save (fix confirmed).** Save the root cause, fix pattern, and what test locked it while reasoning is fresh. Topic key: `<repo>/bugfix/<bug-slug>`. Type: `bugfix`. Don't wait until Phase 7 — compaction may evict the debugging reasoning.
 16. **C16.** Run `/verify` (skill `verify`, alias `verification-loop`). Full loop: build + types + lint + tests + console.log check + git status. This is the cheap-to-expensive gate. Fail fast here before wasting time on coverage or review.
 17. **C17.** Run `/test-coverage` (skill `test-coverage`) to confirm the new test actually counts and the module under repair still meets the 80% threshold from `testing.md`.
 
@@ -153,15 +154,17 @@ Trigger condition: you have looped C14–C16 more than twice on the same symptom
 
 A fix is not done when the test turns green. It is done when the reviewers certify nothing adjacent broke and no new attack surface was introduced.
 
+22.5. **C22.5.** **Compute context brief for reviewers.** Before launching parallel reviewers, compute: (1) the bug root cause (one sentence), (2) files changed with diff summary, (3) the locked test from C11 and its assertion, (4) `/verify` results from C16. Inject into each reviewer's prompt so they skip re-investigation of the bug and focus on the fix quality.
 23. **C23.** Run `Agent(code-reviewer)` or `/code-review` (skill `code-review`). Mandatory per `CLAUDE.md`. Look for neighboring breakage: call sites you didn't notice, shared state you mutated, error paths you silenced.
 24. **C24.** Run the language-specific reviewer in parallel with C23:
     - Go: `/go-review` (skill `go-review`)
     - Python: `/python-review` (skill `python-review`)
     - Database or schema changes: `Agent(database-reviewer)`
-25. **C25.** If the bug is security-relevant (auth, input handling, secrets, injection, deserialization, crypto, session, rate limit), run `Agent(security-reviewer)` or skill `security-review`. A bug-fix patch that accidentally opens new attack surface is the classic regression trap.
+25. **C25.** `Agent(security-reviewer)` or skill `security-review` — **CONDITIONAL:** run only if the bug or fix touches auth, crypto, input validation, secrets, or error messages. For logic bugs, perf fixes, or UI-only bugs, skip and note "security review skipped: no security surface."
+25.5. **C25.5.** **Merge reviewer outputs.** Orchestrator deduplicates findings from C23–C25, produces one unified review. Present to user as a single list, not three separate reports.
 26. **C26.** If the bug is user-facing, run `/e2e` (skill `e2e`, agent `e2e-runner`). Prefers Vercel Agent Browser, falls back to Playwright. A unit test alone does not protect against re-regressions in the UI layer.
 27. **C27.** If the build is red, run `/build-fix` (skill `build-fix`, agent `build-error-resolver`) or `/go-build` for Go projects. Minimum-diff only — do not let the build fixer broaden the change.
-28. **C28.** Run `/refactor-clean` (skill `refactor-clean`, agent `refactor-cleaner`) to sweep dead code the fix may have created. Unused imports, dead branches, and stale comments all count.
+28. **C28.** Run `/refactor-clean` (skill `refactor-clean`, agent `refactor-cleaner`) — **batched:** run only if the fix touched >3 files. Bug fixes are usually 1–2 files; running knip/depcheck on a 1-file fix wastes time.
 
 **Parallelization:** C23 + C24 + C25 are independent — launch them in a single message as parallel tool calls. C26–C28 depend on their results, so run them sequentially after the reviewers return.
 
@@ -215,6 +218,9 @@ Non-negotiable. The memory step is what prevents the same class of bug from recu
 - Keep `$ERROR_TEXT` from C3 pinned in context through the whole pipeline. Do not let it get compacted out.
 - If `/caveman full` makes the output so terse that you lose a critical stack frame, drop intensity to `normal` for the affected section. The token savings are not worth a misdiagnosis.
 - If the repo is not yet indexed by gitnexus, run `/update-codemaps` before C5. The impact query in C5 returns nothing useful against an unindexed repo.
+
+**Token budgets:**
+- `/codex:rescue` ~10k/5min (including Codex job time), `/verify` 5min timeout, `/e2e` 5min timeout. `/codex:adversarial-review` ~5k/2min. On timeout: skip with note.
 
 **Caveman intensity:**
 - Default `full` throughout the pipeline.

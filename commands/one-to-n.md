@@ -104,6 +104,7 @@ This phase is strictly read-only. Do not touch files. Do not stage changes. If y
 
 - **B1** — Run `/caveman full` to switch to terse mode. Large-repo mapping dumps a lot of text; terse output saves input tokens.
 - **B2** — Run `/sessions` to resume or open a fresh named session for this feature. All subsequent memory saves will attach to it.
+- **B2.5** — `mcp__engram__mem_search '<repo>/<area>'` — search episodic memory BEFORE Explore agents and gitnexus queries so prior decisions about this feature area can shape the Explore prompts and gitnexus queries. Pass results as context to B4–B7.
 - **B3** — Call `mcp__gitnexus__list_repos` to confirm the current repo is indexed. If it is not indexed, STOP and ask the user to index it; do not proceed without the knowledge graph — this whole workflow depends on it.
 - **B4** — Call `mcp__gitnexus__context` with the feature area (use `$2` if provided, otherwise keywords from `$1`). This returns the knowledge-graph slice: modules, classes, functions, and their relationships around the feature.
 - **B5** — Call `mcp__gitnexus__route_map` and `mcp__gitnexus__tool_map` to trace request → handler → service → repository paths and tool-call sites. This is how you discover the real seams, not the ones the README claims exist.
@@ -113,7 +114,7 @@ This phase is strictly read-only. Do not touch files. Do not stage changes. If y
   2. "Find every caller of the symbols returned by gitnexus in B4/B5, including indirect callers via reflection, DI, or string dispatch."
   3. "Find the most similar feature already in the repo and list the files it touches and the conventions it follows."
   Three angles beats one sequential pass — this is where you find the 14 call sites instead of the 1 obvious one.
-- **B8** — Run `mem_search` with `<repo-name>/<area>` to surface prior decisions, bug fixes, and conventions from past sessions on this codebase. Also call `mem_context` for recent session history.
+- **B8** — (moved to B2.5 — see above)
 - **B9** — Run `/vault-find` with the feature keyword to pull Brain notes tied to this codebase. Prefer this over hand-reading vault files.
 
 Output of Phase 1 is a mental model of: every file that is likely to change, every file that merely calls what will change, and every test that currently pins behaviour near the change. Write this mental model into the plan file in Phase 3 — do not try to hold it.
@@ -144,6 +145,7 @@ This phase is the reason you are running this workflow instead of `/zero-to-one`
   Merge their findings into the plan file. If any of them flags a CRITICAL or HIGH issue, resolve it before moving on.
 - **B17** — Run `/codex:adversarial-review` on the plan text. GPT-5.4 attacks design choices (races, data loss, schema drift, auth holes) rather than syntax — that is its unique value at this gate.
 - **B18** — `ExitPlanMode`. Before exiting, confirm with `AskUserQuestion` on any non-obvious trade-off the reviewers surfaced. This is the second hard gate (see "Hard gates").
+- **B18.5** — **Milestone mem_save (plan approved).** Save architecture decisions and gitnexus impact analysis while reasoning is fresh. Topic key: `<repo>/<feature>/plan-approved`. Type: `decision`.
 
 Plan file lives at `/Users/christxu/.claude/plans/<slug>.md` so subsequent phases can reference it by path.
 
@@ -167,6 +169,9 @@ An "integration seam" for this workflow means: the outermost point at which data
 
 All tests written in this phase should be RED after Phase 4. If any is already GREEN, it is testing the wrong thing — rewrite it. A passing test in Phase 4 is a false negative; it tells you nothing about whether your Phase 5 implementation will actually land the change.
 
+- **B21.5** — **RED-gate (HARD).** Verify ALL contract tests from B21 actually FAIL before workers start implementing. Run the test suite and confirm failures match expected seams. If any test unexpectedly passes, stop — either the test is wrong (doesn't test new behavior) or the feature already exists. Do not proceed to B22 until RED is confirmed.
+- **B21.8** — **Compute context brief for workers.** Before launching /multi-execute workers, compute a structured brief: (1) changed/target files with paths, (2) gitnexus impact results from B10–B13, (3) contract test status from B21 (which tests are RED), (4) prior architecture decisions from B2.5 mem_search, (5) plan summary from B18. Inject this brief into each worker's prompt so workers skip codebase re-discovery.
+
 ---
 
 ### Phase 5 — Parallel Execution
@@ -177,7 +182,7 @@ This is where `/multi-execute` earns its keep. Per `performance.md`, the worker 
 - **B23** — If the feature is backend-heavy (business logic, data layer, API handler), additionally route through `/multi-backend` so the Codex authority path reviews business-logic choices. Codex is your second-opinion voice on backend decisions — use it when the cost of a wrong business rule is high.
 - **B24** — If the feature is UI-heavy, route through `/multi-frontend` so the Gemini authority path reviews UX choices. Gemini's diverse-model lens is most valuable for design-level trade-offs; for pure refactors it is overkill.
 - **B25** — Write-time skills fire automatically on each edit: `plankton-code-quality`, `coding-standards`, and any language-specific skill (`golang-patterns`, `django-patterns`, `springboot-patterns`, `swiftui-patterns`, `python-patterns`, `backend-patterns`, `frontend-patterns`, `jpa-patterns`, `postgres-patterns`, `docker-patterns`, etc.). These enforce idiom at the moment of writing — do not disable them to "move faster". The two seconds they add per edit save ten minutes of review comments.
-- **B26** — After each chunk lands, run `/refactor-clean` to remove code the change made dead (`knip` / `depcheck` / `ts-prune` / language-specific equivalents). Dead code left in place obscures the next feature and inflates the diff reviewers have to read.
+- **B26** — `/refactor-clean` (batched) — run only after >3 file changes in the current execution chunk, or once before Phase 6 verification. Single-file fixes rarely produce dead code.
 
 Keep the Phase 4 tests running locally during Phase 5 where possible — instant RED→GREEN feedback beats waiting for Phase 6. If you cannot run tests locally (large repo, slow suite), run them after each chunk rather than waiting until the end.
 
@@ -204,11 +209,12 @@ Phase 6 ends only when every step from B27 through B30 passes. If coverage is be
 
 Three reviewers in parallel, then two sequential second opinions. Parallelism here is the throughput win — a sequential review pass on a 20-file change is slow enough that you will be tempted to skip reviewers, and skipped reviewers are how bugs ship.
 
-- **B32** — `/code-review` always. Per CLAUDE.md, this is mandatory after any code write. No exceptions for "trivial" changes — trivial changes are where reviewers stop paying attention and that is exactly where regressions hide.
-- **B33** — Launch the language-specific deeper review in parallel with B32: `/go-review` for Go, `/python-review` for Python, equivalent for other stacks. These catch language-specific pitfalls general review misses (goroutine leaks, GIL assumptions, N+1 queries in an ORM the general reviewer does not know, etc.).
+- **B32** — Language-specific reviewer (`/go-review` / `/python-review` as applicable) — `/orchestrate feature` or `/code-review` already covers generic code review; this step adds language-specific depth. Skip if no language-specific reviewer exists. Use Haiku 4.5 model.
+- **B33** — `/code-review` always. Per CLAUDE.md, this is mandatory after any code write. No exceptions for "trivial" changes — trivial changes are where reviewers stop paying attention and that is exactly where regressions hide.
 - **B34** — `Agent(database-reviewer)` in parallel with B32/B33, but only if the change touches schema, queries, or migrations. For query-heavy changes, pair this with the `database-migrations` skill so the reviewer has the migration context in scope.
-- **B35** — `Agent(security-reviewer)` in parallel — always, regardless of whether you think the change is security-relevant. You are not the best judge of what is security-relevant in a codebase this size; the reviewer is.
-- **B36** — After the three parallel reviewers return, run `/codex:adversarial-review` for the pre-merge second opinion. This is the second GPT-5.4 gate (first was B17 on the plan). Review `/codex:result` output manually — do not auto-apply any fixes it proposes (forbidden by the codex plugin rules).
+- **B35** — `Agent(security-reviewer)` (CONDITIONAL) — run only if this PR touches auth, crypto, input validation, secrets, error message formatting, or API endpoint definitions. For CSS-only, docs-only, or test-only changes, skip and note 'security review skipped: no security surface' in PR body.
+- **B36** — After the parallel reviewers return, run `/codex:adversarial-review` for the pre-merge second opinion. This is the second GPT-5.4 gate (first was B17 on the plan). Review `/codex:result` output manually — do not auto-apply any fixes it proposes (forbidden by the codex plugin rules).
+- **B36.5** — **Merge reviewer outputs.** Orchestrator deduplicates findings across B32–B36, reconciles conflicts, produces one unified review digest for the user.
 - **B37** — `/caveman-review` last — produces the one-line PR-comment version of everything the reviewers found, which is what you will paste into the PR description.
 
 Address CRITICAL and HIGH findings before Phase 8. MEDIUM findings: fix if cheap, defer with a one-line note in the PR body otherwise. LOW findings: note in the session memory entry at B44 for later sweeps, do not block the PR on them.
@@ -264,6 +270,8 @@ Quick reference for which plugin each phase leans on, so you can debug coverage 
 - **Haiku 4.5** — `/multi-execute` workers (Phase 5 file-level edits)
 - **GPT-5.4 via Codex** — B17 and B36 adversarial reviews
 - **Gemini** — B24 frontend authority route if applicable
+
+**Token budgets:** `/multi-plan` ~8k/3min, `/codex:adversarial-review` ~5k/2min, `/multi-execute` ~15k/8min, `/verify` 5min timeout, `/e2e` 5min timeout. On timeout: skip with PR note.
 
 **gitnexus is the backbone**: `mcp__gitnexus__list_repos`, `context`, `route_map`, `tool_map`, `impact`, `api_impact`, `shape_check`, `detect_changes`. If gitnexus is unreachable or the repo is not indexed, this workflow is not safe to run — fall back to `/zero-to-one`-style exploratory mapping and warn the user you are flying blind.
 

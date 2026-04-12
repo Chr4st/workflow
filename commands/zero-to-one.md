@@ -113,6 +113,7 @@ Gate: this phase produces an approved plan file. Do not exit plan mode until the
 13. **A13 — `/codex:adversarial-review`** — run against the draft plan text once A10–A12 converge. GPT-5.4 attacks auth, data loss, race conditions, schema drift, and design-level assumptions. Collect findings into the plan's risk list.
 14. **A14 — `AskUserQuestion`** — tie loose ends: resolve any conflicting recommendations from A10–A13, pick between candidate skeletons from A7, confirm the target stack, confirm deployment target. Do not guess — ask.
 15. **A15 — `ExitPlanMode`** — STOP HERE. The user must explicitly approve the plan before you proceed to Phase 3. Write the approved plan to `/Users/christxu/.claude/plans/<slug>-$1.md` so it is referenceable from A32 (PR body) and A34 (`mem_save`).
+15.5. **A15.5 — Milestone mem_save (plan approved).** Call `mcp__engram__mem_save` with the approved architecture decisions while reasoning is fresh in context. Topic key: `$1/architecture/plan-approved`. Type: `decision`. This prevents compaction from evicting the reasoning that led to the plan.
 
 ### Phase 3 — Scaffold
 
@@ -133,7 +134,8 @@ Gate: every unit follows RED → GREEN → REFACTOR. Do not advance to Phase 5 u
 20. **A20 — `/tdd`** — invokes the `tdd-guide` agent to write failing tests first for the first vertical slice. Confirm the test actually fails before implementing — a test that passes without code is a false positive.
 21. **A21 — Stack testing skill** auto-loads based on stack: `python-testing`, `golang-testing`, `springboot-tdd`, `django-tdd`, `e2e-testing`, or `cpp-testing`. These encode framework idioms (fixtures, test discovery, mocking, coverage flags).
 22. **A22 — Implement minimal GREEN code**. Use **Sonnet 4.6** as the implementation model (best coding model per `performance.md`). Constraints from `coding-style.md`: files under 400 LOC, functions under 50 lines, no nesting deeper than 4, immutable data, no hardcoded values. Extract utilities aggressively.
-23. **A23 — `/refactor-clean`** — after each green bar run `knip` / `depcheck` / `ts-prune` (JS/TS), `vulture` / `pyflakes` (Python), `go vet` / `staticcheck` (Go), or language equivalent. Remove anything the new code made dead. PostToolUse auto-format hooks fire here.
+22.5. **A22.5 — Milestone mem_save (first GREEN).** Call `mcp__engram__mem_save` with: what the first slice tests, what implementation pattern was chosen, any surprising behavior during implementation. Topic key: `$1/implementation/first-green`. Type: `learning`.
+23. **A23 — `/refactor-clean` (batched)** — run only after >3 file changes in this TDD cycle, or once before Phase 5 verification. Single-file fixes rarely produce dead code; batching saves ~1 min per skipped run.
 24. **A24 — `/verify quick`** — fast inner loop: build + types only, no full test run. This is the per-unit checkpoint; full tests run in A30.
 
 Repeat A20–A24 per vertical slice until the Phase 2 plan's first milestone is met. If any slice needs more than two RED→GREEN cycles, stop and ask whether the slice is too big (break it down) or the approach is wrong (revisit plan).
@@ -143,9 +145,11 @@ Repeat A20–A24 per vertical slice until the Phase 2 plan's first milestone is 
 Gate: all CRITICAL and HIGH issues from every reviewer must be resolved before moving to Phase 6. MEDIUM issues should be fixed when cheap. Do not ship red.
 
 25. **A25 — `/orchestrate feature`** — sequences `planner → tdd-guide → code-reviewer → security-reviewer` automatically. Per the plan's "critical files" note, **call this command, do not reimplement the sequence**. Wait for it to complete before A26.
-26. **A26 — `Agent(code-reviewer)`** — launch explicitly even though `/orchestrate` already ran it. Mandatory per CLAUDE.md and catches anything added since A25. Use **Sonnet 4.6**.
+25.5. **A25.5 — Compute context brief for reviewers.** Before launching parallel reviewers, the orchestrator computes a structured brief and injects it into each worker's prompt. The brief contains: (1) list of changed files with line counts, (2) gitnexus impact results from any prior impact analysis, (3) test status (pass/fail/coverage), (4) /orchestrate feature findings summary, (5) stack and framework detected. This prevents each reviewer from independently re-reading the codebase and re-deriving project structure — per Latent Briefing research, this saves 42–57% of worker tokens.
+26. **A26 — Language-specific reviewer (go-reviewer / python-reviewer / database-reviewer as applicable)** — /orchestrate feature already ran code-reviewer at A25; this step adds language-specific depth that /orchestrate doesn't cover. Skip if no language-specific reviewer exists for the project's stack. Use Haiku 4.5 model.
 27. **A27 — `Agent(security-reviewer)`** _(parallel with A26)_ — OWASP top-10, secrets scan, injection review, authn/authz surface, rate limiting, error-message leakage. Per `security.md` mandatory checklist.
 28. **A28 — `Agent(database-reviewer)`** _(parallel, conditional)_ — if the project uses persistence (SQL, NoSQL, ORM, file DB), review schema, indexes, migration strategy, N+1 query patterns. Skip entirely if no persistence layer.
+28.5. **A28.5 — Merge reviewer outputs.** Orchestrator collects outputs from A26–A28, deduplicates findings (same file + same issue = one finding), reconciles conflicts (if code reviewer says 'refactor X' and security reviewer says 'don't touch X'), and produces one unified review digest. Present this digest to the user — not three separate reports.
 29. **A29 — `/codex:adversarial-review`** — pre-commit second opinion from GPT-5.4 on the actual code, not just the plan. Per `codex` plugin rules: **never auto-apply** Codex fixes. Review `/codex:result` output first, then ask the user which findings to fix now vs file as follow-ups.
 30. **A30 — `/verify pre-pr`** — slow outer loop: build + types + lint + tests + coverage + console.log scan + git status. Must be green before Phase 6. Coverage must clear the 80% gate from `testing.md`; if it does not, loop back to A20 for the missing slice.
 
@@ -175,7 +179,7 @@ Gate: STOP and show the user the first commit diff before running `/caveman-comm
 - **Parallelization opportunities:**
   - Phase 1: A4–A7 in one tool-call batch, A3 and A5 concurrent (both hit engram). A8 runs after A6/A7 since it depends on their output.
   - Phase 2: `Agent(planner)` + `Agent(architect)` in parallel (A11 ‖ A12). A13 waits for both, then feeds their output to `/codex:adversarial-review`.
-  - Phase 5: `Agent(code-reviewer)` + `Agent(security-reviewer)` + `Agent(database-reviewer)` in parallel (A26 ‖ A27 ‖ A28). A25 `/orchestrate feature` runs first since it is a sequencer.
+  - Phase 5: Language-specific reviewer + `Agent(security-reviewer)` + `Agent(database-reviewer)` in parallel (A26 ‖ A27 ‖ A28). A25 `/orchestrate feature` runs first since it is a sequencer.
   - Phase 6: A36 and A37 are sequential (learn-eval must complete before evolve can decide density). A34 and A35 can run in parallel since they write to different stores (engram vs Brain vault).
 - **Model selection (from `performance.md`):**
   - Phase 2 planning/architecture (A10–A13): **Opus 4.6** (deepest reasoning, reserved for plan phase only).
@@ -195,6 +199,7 @@ Gate: STOP and show the user the first commit diff before running `/caveman-comm
 - **Do not reimplement existing orchestration:** call `/orchestrate feature`, `/multi-plan`, `/codex:adversarial-review`, and `/verify` as-is. The plan's "critical files" section explicitly flags reimplementation as wasted work — they already route through planner / tdd-guide / code-reviewer / security-reviewer internally.
 - **Token discipline:** Phase 1 and Phase 5 are the two token-heavy phases. Prefer `/vault-find` over raw file reads in Phase 1 (cheaper per token). In Phase 5, let reviewer agents summarize rather than dumping full diffs back into context.
 - **File-size hygiene:** flag at write time any file crossing 400 LOC (per `coding-style.md` and `mentor.md`). Suggest extraction to a separate module immediately — do not defer.
+- **Token budgets (estimates):** `/multi-plan` ~8k tokens / 3 min ceiling. `/codex:adversarial-review` ~5k tokens / 2 min. `/verify pre-pr` timeout 5 min. `/e2e` timeout 5 min — on timeout, skip with note in PR body. `/orchestrate feature` ~12k tokens / 5 min. These are ceilings, not targets; abort and simplify if exceeded.
 
 ## When to stop for user input
 

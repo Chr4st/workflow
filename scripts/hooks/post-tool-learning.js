@@ -3,7 +3,7 @@
  * PostToolUse Learning Hook
  *
  * Captures learnings from code changes and test runs, saves to Engram.
- * Fire-and-forget: never blocks Claude. Debounced per file (60s).
+ * Fire-and-forget: never blocks Claude. Debounced per file (20s).
  */
 
 const { spawn } = require('child_process');
@@ -12,7 +12,7 @@ const path = require('path');
 const os = require('os');
 
 const DEBOUNCE_FILE = path.join(os.tmpdir(), 'mentor-hook-debounce.json');
-const DEBOUNCE_MS = 60000; // 60 seconds
+const DEBOUNCE_MS = 20000; // 20 seconds
 
 function getProjectName(filePath) {
   const { getProjectName } = require('../lib/mentor-detect');
