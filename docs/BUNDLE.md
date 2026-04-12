@@ -72,7 +72,7 @@ The bundle depends on three third-party plugins, each pinned to a specific versi
 
 | Tool | Purpose | Install |
 |------|---------|---------|
-| `@anthropic-ai/rtk` | Compress Bash output before it enters context (PreToolUse hook). 60-90% token savings. | `npm install -g @anthropic-ai/rtk && rtk init` |
+| `rtk` | Compress Bash output before it enters context (PreToolUse hook). 60-90% token savings. | `brew install rtk && rtk init -g` |
 | `semgrep` | Deterministic SAST on every Write/Edit (PostToolUse hook). 2,000+ rules. | `pip3 install semgrep` |
 | Stryker / mutmut | Mutation testing — measures test strength beyond coverage. Per-project. | `npx stryker run` (JS/TS) / `mutmut run` (Python) |
 

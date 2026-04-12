@@ -170,10 +170,10 @@ if command -v rtk >/dev/null 2>&1; then
   ok "rtk already installed"
 else
   info "Installing RTK (compresses Bash output, 60-90% token savings)..."
-  if npm install -g @anthropic-ai/rtk >/dev/null 2>&1; then
+  if brew install rtk >/dev/null 2>&1; then
     ok "rtk installed"
   else
-    warn "rtk install failed (non-fatal — install manually: npm install -g @anthropic-ai/rtk)"
+    warn "rtk install failed (non-fatal — install manually: brew install rtk)"
   fi
 fi
 
@@ -410,7 +410,7 @@ fi
 step "10.5" "RTK init"
 
 if command -v rtk >/dev/null 2>&1; then
-  rtk init 2>/dev/null || warn "rtk init failed (non-fatal — run manually: rtk init)"
+  rtk init -g 2>/dev/null || warn "rtk init -g failed (non-fatal — run manually: rtk init -g)"
   ok "rtk PreToolUse hook registered"
 else
   info "rtk not installed — skipping hook registration"

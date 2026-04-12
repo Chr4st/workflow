@@ -623,11 +623,11 @@ The default model in `~/.claude/settings.json` should be `claude-opus-4-6` for p
 RTK compresses Bash command output before it enters Claude's context window. Caveman compresses Claude's *output*; RTK compresses *input* from shell commands. Together they save 60-90% on command output tokens.
 
 ```bash
-npm install -g @anthropic-ai/rtk
-rtk init
+brew install rtk
+rtk init -g
 ```
 
-`rtk init` registers itself as a PreToolUse hook in `~/.claude/settings.json`. No further configuration needed. Verify by running any Bash command in Claude Code — output should be compressed.
+`rtk init -g` registers itself as a PreToolUse hook in `~/.claude/settings.json`. No further configuration needed. Verify by running any Bash command in Claude Code — output should be compressed.
 
 ### 9f. Semgrep SAST hook (recommended)
 
