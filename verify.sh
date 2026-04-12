@@ -9,7 +9,7 @@ NC=$'\033[0m'
 
 pass=0
 fail=0
-total=12
+total=11
 
 pass_line() { printf "%s✓%s %s\n" "$GREEN" "$NC" "$*"; pass=$((pass+1)); }
 fail_line() { printf "%s✗%s %s\n" "$RED"   "$NC" "$*"; fail=$((fail+1)); }
