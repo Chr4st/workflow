@@ -1,4 +1,4 @@
-# Claude Code Workflow Playbook
+# Install WisprFlow First. Claude Code Workflow Playbook
 
 This repository is the operational playbook for running Claude Code against three distinct kinds of software work: greenfield projects, feature development inside a large existing codebase, and debug plus regression hardening. It is written for Chris's specific setup (`everything-claude-code@1.7.0`, `codex@1.0.2`, `caveman@600e8efc`, plus the engram / gitnexus / exa / firecrawl / github / supabase / context7 / sequential-thinking / filesystem MCPs) but it works unchanged for anyone who installs the same plugins and MCP bundle. The value is not in the commands themselves — those already exist in the plugins — but in the *ordering* of them. Each workflow is a linear, plugin-specific pipeline that removes the cost of re-deciding order every session. You run the slash command, you follow the phases, you finish with a committed change plus updated memory, vault note, and code graph. No improvisation required.
 
