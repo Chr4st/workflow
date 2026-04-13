@@ -104,6 +104,8 @@ If `$1` is missing, stop immediately and ask the user for it via `AskUserQuestio
 
 Gate: do NOT write any project files in this phase. Read-only discovery only. The goal is to surface every relevant prior art item before you commit to a stack.
 
+**A3.5 — Research bundle check (conditional).** After A3, check if `~/.claude/sessions/research-bundle-{$1}.json` exists from a prior `/research` run. If present: load the bundle into context and skip A4–A8 entirely — the bundle already contains vault hits, web research, GitHub skeletons, and market data. Jump directly to A9 (Phase 2). If absent: proceed with A4–A8 as normal.
+
 1. **A1 — `/caveman full`** — set terse output for the exploration phase (saves ~40% on tokens during broad search per caveman plugin docs).
 2. **A2 — `/sessions`** — resume a prior session named `$1` or create a fresh one. This gives `continuous-learning-v2` a session boundary to attach observations to and activates the SessionStart hooks.
 3. **A3 — `mcp__engram__mem_context`** — pull recent episodic memory from past sessions. Hydrates prior decisions that may apply to `$1`. Required per engram rules at every session start.

@@ -287,7 +287,7 @@ copy_glob "$SCRIPT_DIR/scripts/lib"   "$HOME/.claude/scripts/lib"   "*.js" "scri
 CURRENT_STEP=7
 step 7 "Symlink slash commands"
 
-for cmd in zero-to-one.md one-to-n.md debug-test.md; do
+for cmd in zero-to-one.md one-to-n.md debug-test.md research.md; do
   src="$SCRIPT_DIR/commands/$cmd"
   dst="$HOME/.claude/commands/$cmd"
   if [ ! -f "$src" ]; then

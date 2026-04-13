@@ -41,10 +41,24 @@
       "requires_user_input": false,
       "invokes_skill": null,
       "exit_condition": "Prior context loaded and summarized; relevant memories identified.",
-      "next": "A4",
+      "next": "A3.5",
       "join": null,
       "model": "haiku",
       "conditional_on": null
+    },
+    {
+      "id": "A3.5",
+      "phase": 1,
+      "name": "Check research bundle",
+      "instruction": "Check if ~/.claude/sessions/research-bundle-{project-name}.json exists. If present, load it and skip to A9 (plan mode). If absent, proceed to A4 for inline research.",
+      "type": "conditional",
+      "requires_user_input": false,
+      "invokes_skill": null,
+      "exit_condition": "Research bundle loaded and Phase 1 skipped, or bundle absent and proceeding to A4.",
+      "next": "A4",
+      "join": null,
+      "model": "haiku",
+      "conditional_on": "research_bundle_exists"
     },
     {
       "id": "A4",

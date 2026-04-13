@@ -56,7 +56,7 @@ fi
 
 # 5) all 3 command symlinks exist and point to valid files
 symlink_ok=true
-for cmd in zero-to-one.md one-to-n.md debug-test.md; do
+for cmd in zero-to-one.md one-to-n.md debug-test.md research.md; do
   dst="$HOME/.claude/commands/$cmd"
   if [ -L "$dst" ]; then
     target=$(readlink "$dst" 2>/dev/null || echo "")
@@ -70,7 +70,7 @@ for cmd in zero-to-one.md one-to-n.md debug-test.md; do
   fi
 done
 if [ "$symlink_ok" = true ]; then
-  pass_line "all 3 command symlinks valid and targets exist"
+  pass_line "all 4 command symlinks valid and targets exist"
 fi
 
 # 6) statusLine key present
