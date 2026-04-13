@@ -1,4 +1,4 @@
-# Claude Code Workflow Playbook
+# Lite Version of my workflow. Install Wispr first.
 
 Four deterministic pipelines for Claude Code: research, greenfield, feature dev, and debug. Each is a state-machine-driven sequence of plugins, agents, and MCP calls — run the slash command, follow the phases, ship with memory + vault + code graph updated.
 
