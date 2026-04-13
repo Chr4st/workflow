@@ -1,6 +1,6 @@
 # Install WisprFlow First. Claude Code Workflow Playbook
 
-This repository is the operational playbook for running Claude Code against three distinct kinds of software work: greenfield projects, feature development inside a large existing codebase, and debug plus regression hardening. It is written for Chris's specific setup (`everything-claude-code@1.7.0`, `codex@1.0.2`, `caveman@600e8efc`, plus the engram / gitnexus / exa / firecrawl / github / supabase / context7 / sequential-thinking / filesystem MCPs) but it works unchanged for anyone who installs the same plugins and MCP bundle. The value is not in the commands themselves — those already exist in the plugins — but in the *ordering* of them. Each workflow is a linear, plugin-specific pipeline that removes the cost of re-deciding order every session. You run the slash command, you follow the phases, you finish with a committed change plus updated memory, vault note, and code graph. No improvisation required.
+This repository is the operational playbook for running Claude Code against four distinct kinds of software work: standalone research, greenfield projects, feature development inside a large existing codebase, and debug plus regression hardening. It is written for Chris's specific setup (`everything-claude-code@1.7.0`, `codex@1.0.2`, `caveman@600e8efc`, plus the engram / gitnexus / exa / firecrawl / github / supabase / context7 / sequential-thinking / filesystem MCPs) but it works unchanged for anyone who installs the same plugins and MCP bundle. The value is not in the commands themselves — those already exist in the plugins — but in the *ordering* of them. Each workflow is a linear, plugin-specific pipeline that removes the cost of re-deciding order every session. You run the slash command, you follow the phases, you finish with a committed change plus updated memory, vault note, and code graph. No improvisation required.
 
 ## Quick install
 
@@ -17,9 +17,9 @@ For real-time telemetry (context usage, tokens, active agents), also run: `claud
 ## Quickstart
 
 1. **Install the three plugins and MCP servers.** See `INSTALL.md` for the full procedure. At minimum you need `everything-claude-code`, `codex`, and `caveman` installed, plus engram and gitnexus running as MCP servers. The other MCPs (exa-web-search, firecrawl, github, supabase, context7, sequential-thinking, filesystem) are used by at least one phase of at least one workflow; install all of them or accept that some steps will be no-ops.
-2. **Copy the command files into your Claude Code commands directory.** The three slash commands live in `commands/zero-to-one.md`, `commands/one-to-n.md`, and `commands/debug-test.md`. They must be linked or copied into `~/.claude/commands/` so Claude Code can discover them. `INSTALL.md` covers the symlink approach so updates in this repo take effect immediately.
+2. **Copy the command files into your Claude Code commands directory.** The four slash commands live in `commands/research.md`, `commands/zero-to-one.md`, `commands/one-to-n.md`, and `commands/debug-test.md`. They must be linked or copied into `~/.claude/commands/` so Claude Code can discover them. `INSTALL.md` covers the symlink approach so updates in this repo take effect immediately.
 3. **Verify plugins are loaded.** Run `/projects` (loads instinct stats), `/codex:setup` (confirms Codex CLI bridge), and `mem_stats` (confirms engram is writing). If any of the three fail, fix them before running a workflow. The playbook assumes all three plugin surfaces are healthy.
-4. **Run the workflow for the work you're about to do.** `/zero-to-one <project-name> [description]` for greenfield, `/one-to-n <feature> [target-area]` for features in an existing repo, `/debug-test <bug-description> [suspect]` for bugs. Each one self-narrates its phases so you always know where you are in the pipeline.
+4. **Run the workflow for the work you're about to do.** `/research <project-name> [domain keywords]` for standalone discovery before building, `/zero-to-one <project-name> [description]` for greenfield, `/one-to-n <feature> [target-area]` for features in an existing repo, `/debug-test <bug-description> [suspect]` for bugs. Each one self-narrates its phases so you always know where you are in the pipeline.
 5. **When something goes wrong, read the "Common pitfalls" section of the relevant workflow below.** Every pipeline has known failure modes and the guardrails that prevent them are documented in this file. If you're stuck on a bug, Workflow C's Codex rescue phase is the escape hatch — do not grind in a loop.
 
 ## Why these three workflows?
@@ -34,6 +34,42 @@ The three categories are not arbitrary. They correspond to the three dominant co
 
 Each workflow below is tuned to its specific constraint. The commands, agents, and skills overlap — TDD and code review appear in all three — but the *ordering* and the *gates* are different, and that is the entire point.
 
+**Research is constrained by information quality.** Before committing to a project you need to know what already exists, what the prior art looks like, which skeletons are forkable, what the market landscape contains, and where the knowledge gaps are. Doing this inside `/zero-to-one` conflates discovery with commitment — you start scaffolding before you have finished discovering. The `/research` command decouples these: it runs a parallel technical-and-market research pipeline that produces a structured research bundle (knowledge graph with typed entities and relationships, adapted from the OmegaWiki architecture). The bundle feeds into `/zero-to-one` at step A3.5, skipping redundant Phase 1 discovery. You can also run `/research` standalone for domain exploration without ever starting a project.
+
+## Workflow R — Research
+
+### When to use
+
+Signals that you are in Workflow R: you have a domain or problem area but no project yet, you want to understand the technical landscape before committing to a stack, you need market analysis alongside technical research, or you want to evaluate skeleton projects and prior art systematically. If you already know what you are building and just need to scaffold it, skip to `/zero-to-one`. If you have a running codebase, you are in Workflow B. If you have a bug, you are in Workflow C.
+
+### Intent
+
+The governing intent is **discover before committing**. Research time spent understanding the landscape compounds: the difference between "chose the right architecture pattern after reading five implementations" and "picked the first Stack Overflow answer" is measured in weeks of rework. The workflow front-loads parallel discovery (web research, GitHub survey, paper ingestion, market analysis) and synthesizes findings into a typed knowledge graph adapted from the OmegaWiki architecture (9 entity types, 9 relationship types). Only after adversarial review challenges the synthesis does the user decide whether to proceed to `/zero-to-one`.
+
+### Pipeline walk-through
+
+The pipeline is 24 steps across 5 phases.
+
+**Phase 0 — Intake (R0–R0.5).** Clarification gates determine research focus (technical only, market only, or both), domain keywords, depth (surface scan, deep dive, or exhaustive), known prior art, and paid API budget. Based on answers, the pipeline activates the appropriate discovery branches.
+
+**Phase 1 — Context load (R1–R4).** Set `/caveman full`, open a session, pull engram memory with `mem_context` and `mem_search`, and search the Brain vault with `/vault-find`.
+
+**Phase 2 — Discovery (R5–R7).** Fork into four parallel branches: web research via `exa-web-search` for benchmarks and architecture posts (R5a), GitHub survey via `gh search` for 5–10 skeleton candidates (R5b), paper/article ingestion with Opus for deep comprehension (R5c), and market/resource research extending the existing `market-research` skill with resource comparisons, technology landscape mapping, and cost analysis (R5d). After all branches complete, fetch live docs with `context7` (R6), then structure all findings into a typed knowledge graph (R7) with entity types (paper, concept, topic, tool, skeleton, claim, gap, market_data, decision_point) and relationship types (extends, contradicts, supports, implements, competes_with, depends_on, supersedes, costs, integrates_with).
+
+**Phase 3 — Analysis (R8–R10.5).** Fork into parallel gap detection (R8a) and novelty assessment (R8b). Synthesize into top-3 recommended approaches with trade-offs, skeleton recommendation, technology stack suggestion, risk register, and open questions (R9). Run `/codex:adversarial-review` on the synthesis (R10). Present to user for accept/reject/amend (R10.5).
+
+**Phase 4 — Bundle and persist (R11–R15).** Write the structured research bundle to `~/.claude/sessions/research-bundle-{project}.json`. Save to engram, write vault session note, run learn-eval, close with mandatory session summary.
+
+### Integration with /zero-to-one
+
+When `/zero-to-one` starts, step A3.5 checks for a research bundle matching the project name. If found, the bundle is loaded and Phase 1 discovery (A4–A8) is skipped entirely — the bundle already contains everything those steps would produce. This saves 5–10 minutes of redundant research and ensures `/zero-to-one` plans against systematically gathered evidence rather than ad-hoc discovery.
+
+### Command
+
+`/research <project-name> [domain keywords]`
+
+The command file at `commands/research.md` narrates each phase as it runs.
+
 ## Workflow A — 0→1 Development
 
 ### When to use
@@ -46,9 +82,9 @@ The governing intent is **research before code, plan before scaffolding, and TDD
 
 ### Pipeline walk-through
 
-The pipeline is 38 steps across 6 phases. The following is a phase-by-phase summary of what each phase does and why it is ordered where it is.
+The pipeline is 39 steps across 6 phases. The following is a phase-by-phase summary of what each phase does and why it is ordered where it is.
 
-**Phase 1 — Context and research (steps A1–A8).** Start by setting `/caveman full` so exploration output is terse and token-cheap, then open or resume a session with `/sessions`. Pull recent episodic memory with `mem_context` from the engram MCP so you do not lose the thread from prior sessions. Search the Brain vault with `/vault-find "<domain>"` and engram across projects with `mem_search "<domain>"` — between the two you capture both written notes and past decision context. Then go external: `exa-web-search` for broad prior art and benchmarks, `gh search repos` and `gh search code` to find forkable skeletons (this is what the `search-first` skill is for), and `context7` for live docs of any stack you are already leaning toward. The point of this phase is to refuse to write code until you have looked hard for code that already solves the problem.
+**Phase 1 — Context and research (steps A1–A8).** Start by setting `/caveman full` so exploration output is terse and token-cheap, then open or resume a session with `/sessions`. If a research bundle from `/research` exists for this project, step A3.5 skips all of Phase 1 discovery (A4–A8) and jumps directly to Phase 2. Pull recent episodic memory with `mem_context` from the engram MCP so you do not lose the thread from prior sessions. Search the Brain vault with `/vault-find "<domain>"` and engram across projects with `mem_search "<domain>"` — between the two you capture both written notes and past decision context. Then go external: `exa-web-search` for broad prior art and benchmarks, `gh search repos` and `gh search code` to find forkable skeletons (this is what the `search-first` skill is for), and `context7` for live docs of any stack you are already leaning toward. The point of this phase is to refuse to write code until you have looked hard for code that already solves the problem.
 
 **Phase 2 — Plan and design (steps A9–A15).** Enter plan mode with `EnterPlanMode` to block accidental writes. Run `/multi-plan` to route Research → Ideation → Plan across Codex GPT-5.4, Gemini, and Claude simultaneously — three models stress-testing the same problem is how you catch blind spots a single model would miss. In parallel, dispatch `Agent(planner)` to produce a PRD with phased breakdown and risk list, and `Agent(architect)` to critique system design and flag scalability concerns. Then run `/codex:adversarial-review` to hand the current plan document to GPT-5.4 for attack-surface review — auth holes, data loss paths, race conditions, schema drift. Use `AskUserQuestion` to resolve any loose decisions, then `ExitPlanMode` when the plan is approved. Opus 4.6 is the right model for this phase per `performance.md` because planning is deep-reasoning work.
 
@@ -216,12 +252,13 @@ Confirm the plugins themselves with `/codex:setup` (Codex CLI is ready), `/proje
 
 ```
 workflow/
-├── commands/          # 3 workflow slash commands
+├── commands/          # 4 workflow slash commands
 ├── rules/common/      # 11 global rule files
-├── agents/            # 14 agent definitions
+├── agents/            # 16 agent definitions
 ├── scripts/
-│   ├── hooks/         # 4 lifecycle hooks
-│   └── lib/           # 6 shared libraries
+│   ├── hooks/         # 6 lifecycle hooks
+│   └── lib/           # 7 shared libraries
+├── state-machines/    # 4 deterministic workflow state machines
 ├── templates/         # CLAUDE.md, settings.json, env templates
 ├── docs/              # BUNDLE.md + TROUBLESHOOTING.md
 ├── install.sh
@@ -231,11 +268,11 @@ workflow/
 └── README.md
 ```
 
-`README.md` is this document — the central guide and the first thing to read. `INSTALL.md` covers the step-by-step setup for the three plugins, MCP server configuration, hook enablement, `MAX_THINKING_TOKENS` configuration, and Wispr Flow prerequisite installation. The `commands/` directory holds the three runnable slash commands, one per workflow. Each command file narrates its phases as it runs, so you can follow along and know which gate you are at.
+`README.md` is this document — the central guide and the first thing to read. `INSTALL.md` covers the step-by-step setup for the three plugins, MCP server configuration, hook enablement, `MAX_THINKING_TOKENS` configuration, and Wispr Flow prerequisite installation. The `commands/` directory holds the four runnable slash commands, one per workflow. Each command file narrates its phases as it runs, so you can follow along and know which gate you are at. The `state-machines/` directory holds the deterministic JSON state machine definitions that drive each workflow, with a PostToolUse hook (`workflow-verifier.js`) tracking progress and detecting step-skipping.
 
 ## Credits and references
 
-The authoritative design source for this playbook is the plan file at `/Users/christxu/.claude/plans/steady-sprouting-rabbit.md`. That file contains the complete step-by-step tables (A1–A38, B1–B48, C1–C35), the per-step rationales, and the plugin citations. This README is a prose expansion of that plan; the plan is the source of truth if the two ever disagree.
+The authoritative design source for this playbook is the plan file at `/Users/christxu/.claude/plans/steady-sprouting-rabbit.md`. That file contains the complete step-by-step tables (R0–R15, A1–A38, B1–B48, C1–C35), the per-step rationales, and the plugin citations. This README is a prose expansion of that plan; the plan is the source of truth if the two ever disagree.
 
 This playbook inherits from the global rules in `~/.claude/rules/common/`, specifically: `coding-style.md` for immutability, file organization, and error handling; `git-workflow.md` for conventional commit format and PR workflow; `testing.md` for the 80% coverage gate and TDD mandate; `performance.md` for the model selection strategy and context window management; `patterns.md` for skeleton project and repository pattern conventions; `mentor.md` for the technical mentor trade-off reasoning and growth-edge monitoring; `hooks.md` for the hook type taxonomy and auto-accept rules; `development-workflow.md` for the full research-plan-TDD-review pipeline; `agents.md` for agent orchestration and parallel task execution; and `security.md` for the mandatory security checks and secret management rules. Every rule in those files applies to every workflow in this playbook without exception.
 

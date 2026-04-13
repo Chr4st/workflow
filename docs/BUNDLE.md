@@ -1,6 +1,6 @@
 # Bundle Contents
 
-This repo ships a reproducible Claude Code setup. After `./install.sh`, your machine has Chris's workflow playbook, rule set, agents, hook scripts, and slash commands — minus personal project data. The bundle is intentionally core-only: the three workflow slash commands plus the supporting global configuration they depend on, and nothing that is tied to a specific vault, project, or credential.
+This repo ships a reproducible Claude Code setup. After `./install.sh`, your machine has Chris's workflow playbook, rule set, agents, hook scripts, and slash commands — minus personal project data. The bundle is intentionally core-only: the four workflow slash commands plus the supporting global configuration they depend on, and nothing that is tied to a specific vault, project, or credential.
 
 This document describes exactly what lands on your machine after install, what was deliberately left out, and the few places where sanitization replaced personal references with placeholders you can fill in.
 
@@ -8,16 +8,17 @@ This document describes exactly what lands on your machine after install, what w
 
 | Path | Purpose | Notes |
 |------|---------|-------|
-| `commands/*.md` | 3 workflow slash commands (`/zero-to-one`, `/one-to-n`, `/debug-test`) | Symlinked to `~/.claude/commands/` so `git pull` in this repo updates the live commands instantly. |
+| `commands/*.md` | 4 workflow slash commands (`/research`, `/zero-to-one`, `/one-to-n`, `/debug-test`) | Symlinked to `~/.claude/commands/` so `git pull` in this repo updates the live commands instantly. |
 | `rules/common/*.md` | 11 global rule files (clarification, testing, security, coding-style, git-workflow, performance, patterns, mentor, hooks, development-workflow, agents) | Copied to `~/.claude/rules/common/`. These are referenced by every workflow phase and by the global `CLAUDE.md`. |
-| `agents/*.md` | 14 agent definitions (planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, e2e-runner, refactor-cleaner, doc-updater, and 5 more) | Copied to `~/.claude/agents/`. Each agent is a single markdown file with its own frontmatter and role prompt. |
-| `scripts/hooks/*.js` | 5 SessionStart / PostToolUse / Stop hooks (including semgrep SAST scanner) | Copied to `~/.claude/scripts/hooks/`. Wired into `settings.json` via the hook registration block. |
-| `scripts/lib/*.js` | 6 shared lib files (utils, project-detect, session-manager, mentor-detect, pattern-extract, formatter) | Copied to `~/.claude/scripts/lib/`. Imported by the hook scripts; not invoked directly. |
+| `agents/*.md` | 16 agent definitions (planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, e2e-runner, refactor-cleaner, doc-updater, research-synthesizer, research-critic, and 5 more) | Copied to `~/.claude/agents/`. Each agent is a single markdown file with its own frontmatter and role prompt. |
+| `scripts/hooks/*.js` | 6 SessionStart / PostToolUse / Stop hooks (including semgrep SAST scanner and workflow progress verifier) | Copied to `~/.claude/scripts/hooks/`. Wired into `settings.json` via the hook registration block. |
+| `scripts/lib/*.js` | 7 shared lib files (utils, project-detect, session-manager, mentor-detect, pattern-extract, formatter, workflow-runner) | Copied to `~/.claude/scripts/lib/`. Imported by the hook scripts; not invoked directly. |
+| `state-machines/*.json` | 4 deterministic workflow state machine definitions (research, zero-to-one, one-to-n, debug-test) | Copied to `~/.claude/state-machines/`. Each file defines states with types (sequential/parallel/conditional), model routing, user input gates, and exit conditions. Driven by the `workflow-runner.js` library and `workflow-verifier.js` PostToolUse hook. |
 | `templates/CLAUDE.md.template` | Stub global instructions file | Merged into `~/.claude/CLAUDE.md`. If a `CLAUDE.md` already exists, install.sh backs it up before merging so existing content is preserved. |
 | `templates/settings.json.template` | Baseline settings (plugins, hooks, statusLine) | jq-merged into `~/.claude/settings.json`. Never overwrites — existing keys win over template keys during the merge so your personal tweaks survive a re-run. |
 | `templates/env.template` | Env var names only (no values) | Copied to `.env.example` in the repo root of your target project. You fill in your own secrets; the template ships with empty strings and comments explaining what each var is for. |
 | `install.sh` | Idempotent installer | Creates `~/.claude/.backup.<timestamp>/` before any change. Safe to re-run. Uses `set -euo pipefail` so a failure at any step aborts cleanly without half-applying changes. |
-| `verify.sh` | 8-check post-install verifier | Runs automatically at the end of `install.sh`. Checks: commands symlinked, rules copied, agents copied, hook scripts copied, lib files copied, CLAUDE.md present, settings.json valid JSON, all three plugins installed. |
+| `verify.sh` | 11-check post-install verifier | Runs automatically at the end of `install.sh`. Checks: commands symlinked (4), rules copied, agents copied, hook scripts registered (6), lib files copied, CLAUDE.md present, settings.json valid JSON, all plugins installed. |
 | `uninstall.sh` | Removes symlinks and optional restore | Never deletes memory or sessions. Prompts before touching `CLAUDE.md` or `settings.json`. Backups at `~/.claude/.backup.*/` are retained so you can manually roll back further if you want. |
 
 ## What's NOT included
@@ -25,7 +26,7 @@ This document describes exactly what lands on your machine after install, what w
 The bundle is deliberately scoped down. These things were left out and why:
 
 - **Third-party plugin source** (`everything-claude-code`, `codex`, `caveman`) — these are installed via `claude plugin install` from the three official marketplaces. Shipping their source would fork them, and forks drift. Install.sh calls the plugin CLI so you always get the pinned upstream version.
-- **Vault commands** (`/vault-find`, `/vault-session`, `/vault-daily`, `/vault-consolidate`, etc.) — these assume a specific Obsidian vault at `~/Desktop/Brain` with a specific folder layout and frontmatter schema. Too Brain-specific for a core bundle. The core ships only the three workflow commands.
+- **Vault commands** (`/vault-find`, `/vault-session`, `/vault-daily`, `/vault-consolidate`, etc.) — these assume a specific Obsidian vault at `~/Desktop/Brain` with a specific folder layout and frontmatter schema. Too Brain-specific for a core bundle. The core ships only the four workflow commands.
 - **Bug-bounty command** — a 26KB OWASP pipeline that most users do not need. Kept out of core; can be added back by copying `commands/bug-bounty.md` from the private playbook into `~/.claude/commands/` manually.
 - **Python-specific rules** (`rules/python/`) — out of core scope. The global rules in `rules/common/` are language-agnostic; the Python-specific rules are packaged separately.
 - **Personal memory, session history, plan files** — user-specific runtime state. `~/.claude/projects/`, `~/.claude/sessions/`, and any `memory/MEMORY.md` files are never touched by install.sh or uninstall.sh.
@@ -47,7 +48,7 @@ Three files in the bundle contain placeholders instead of the original personal 
 - **`scripts/lib/mentor-detect.js`** — the project name map was emptied. The original file mapped directory basenames to canonical project names (e.g. `runvault-web` → `RunVault`). The bundled version ships with an empty map so you can add your own `dir → canonical` mapping. Without a mapping, the mentor detection still works but uses the raw directory name instead of a prettier canonical name.
 - **`templates/CLAUDE.md.template`** — the Obsidian vault section was replaced with a stub. The original global `CLAUDE.md` documented the `~/Desktop/Brain` vault layout, frontmatter schema, and vault conventions in detail. The bundled template leaves a commented placeholder section for you to fill in if you use Obsidian, or delete if you do not.
 
-None of the sanitization affects functionality. The three workflow commands and all 14 agents work identically whether or not you fill in the placeholders.
+None of the sanitization affects functionality. The four workflow commands and all 16 agents work identically whether or not you fill in the placeholders.
 
 ## Security
 
@@ -55,7 +56,7 @@ None of the sanitization affects functionality. The three workflow commands and 
 - **`install.sh` runs `set -euo pipefail`** — any failure at any step aborts the install cleanly. `-e` exits on error, `-u` treats unset variables as errors, `-o pipefail` propagates errors through pipes so a failure in any stage of a pipeline aborts the whole pipeline.
 - **All copies back up first** — before any file is written, its existing version (if any) is moved to `~/.claude/.backup.<timestamp>/` with the original directory structure preserved. Re-running install.sh creates a new timestamped backup each time, so you can always roll back to the exact state before a specific re-install.
 - **Plugin install happens via official marketplace only** — the three plugins are installed with `claude plugin install <name>@<version>` from the three marketplaces registered in step 1. No source is cloned from arbitrary URLs, no binaries are downloaded from non-official locations, and the version pins are enforced.
-- **Verify step runs before declaring success** — `verify.sh` runs automatically at the end of `install.sh` and fails loudly if any of the 8 checks does not pass. The install is not "done" until verify is green.
+- **Verify step runs before declaring success** — `verify.sh` runs automatically at the end of `install.sh` and fails loudly if any of the 11 checks does not pass. The install is not "done" until verify is green.
 
 ## Plugin matrix
 
